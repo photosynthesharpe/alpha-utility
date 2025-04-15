@@ -7,6 +7,7 @@ import argparse
 from os.path import abspath
 import json
 from itertools import product
+from Bio import SeqIO
 # Some fasta shit
 
 
@@ -15,7 +16,7 @@ def generateJSONs(protein_fasta, ligand_list, cofactor_list=None):
     Make paired json files for ligands and proteins.
 
     parameters:
-        protein_fasta, str: path to a fasta file containing protein sequences to compare
+        protein_fasta, str: path to a fasta file containing protein sequences to compare, file path
         ligand_list, list of str: ligand CCD codes
         cofactor_list, list of str, optional: cofactor CCD codes
 
@@ -29,7 +30,12 @@ def generateJSONs(protein_fasta, ligand_list, cofactor_list=None):
     # Read the protein fasta
     ## do something --> proteins
     # proteins  is a dict of format {'proteinID': 'sequence'}
-
+    # implement a fasta reader that 
+fasta_sequences = SeqIO.parse(open(input_file),'fasta')
+proteins = {}
+for fasta in fasta_sequences:
+    proteins[fasta.id] = str(fasta.seq)
+    
     inputs = {}
     for pair in product(proteins.keys(), ligand_list):
 
@@ -93,14 +99,35 @@ if __name__ == "__main__":
         help='Path to fasta file with protein sequences'
     )
     paraser.add_argument(
-        ".............."
+        'ligands_file',
+        type=str,
+        help='Path to to file with the CCD ligand codes'
     )
+    parser.add_argument(
+        'cofactor_file',
+        type=str,
+        help='Path to file with the relevant cofactors, can be used or not'
+    )
+    parser.add_argument(
+        'out_loc',
+        type=str,
+        help='Destination of the output JSON files'
+    )
+    parser.add_argument(
+        'outprefix',
+        type=str,
+        help='The experiment being preformed, will lead every output JSON file'
 
     # blah blah blah
 
     args = parser.parse_args()
 
     args.fasta = abspath(args.fasta)
+    args.ligands_file = abspath(args.ligands_file)
+    args.cofactor_file = abspath(args.cofactor_file)
+    args.out_loc = abspath(args.out_loc)
+    # args.outprefix = abspath(args.outprefix)
     # do this for anyt arg that's a path
+    # i did this for everything except the output prefix, i believe that it is the only non-path element
 
-    main(args.fasta, # More arg shit)
+    main(args.fasta, args.ligands_file, args.cofactor_file, args.out_loc)
