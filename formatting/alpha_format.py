@@ -18,97 +18,170 @@ from itertools import product, combinations
 from Bio import SeqIO
 
 
-def make_folding_only_jsons(protein_sequences, ligand_list=None, cofactor_list=None):
+def generate_seq_dicts(group, fasta_sequences, anchor_sequences=None):
     """
-    Makes a set of jsons for AlphaFold where there is one protein and optionally
-    a cofactor and/or ligand.
+    Generate sequence dicts from all desired combinations.
 
     parameters:
-        protein_sequences, SeqIO object: protein sequences to use
-        ligand_list, list of str or None: ligands to use
-        cofactor_list, list of str or None: cofactors to use
+        group, tuple: group of proteins, ligands and cofactors
+        fasta_sequences, SeqIO index object: protein sequences to compare
+        anchor_sequences, SeqIO index object, optional: anchor protein
+            sequences for one_v_many comparisons
 
     returns:
-        jsons, list of dict: formatted jsons
+        instance_dict, dict: the formatted json for this entry
     """
-    for protein
-
-
+    # I mainly split this off for aesthetic reasons, as with all the comments the
+    # function was getting a little unwieldy in terms of lines, but it also allows
+    # us to unit test this section separately from the section that gets the basic
+    # elements we use to pair and generates the combinations.
     
-    for protein in protein_sequences:
-        proteins[fasta.id] = str(fasta.seq)
-        
-        inputs = {}
-        for pair in product(proteins.keys(), ligand_list):
-    
-            pair_dict = {}
-            pair_dict['name'] = '_'.join(pair)
-            pair_dict['sequences'] = [
-                {
+    instance_dict = {}
+    instance_dict['name'] = '_'.join(
+        group)  # Could use some finessing for aesthetics
+
+    # We just have to go over every element and make a dict for it. Proteins
+    # are a little different so we'll use a full loop as opposed to a
+    # (typically way prettier) list comp
+    instance_dict['sequences'] = []
+    for item in group:
+        # There could be other underscores in an ID, so we need to safeguard
+        # when splitting the string to get the prepended string back.
+        id_str = item.split('_')[0]
+        name = '_'.join(item.split('_')
+                        [1:])  # Rather than just the second item of the split
+        # If protein, we need the 'sequence' key rather than 'ccdCodes'
+        if id_str == 'P':
+            # Look for the sequence in the protein list
+            try:
+                seq_dict = {
                     'protein': {
-                    'id': 'P', # This could also be wrong but idk lol
-                    'sequence': proteins[pair[0]]
-                    }
-                },
-                {
-                  'ligand': {
-                    "id": 'L', ## this could be wrong
-                    "ccdCodes": [pair[1]]
+                        'id':
+                        id_str,  ## TODO figure out what is actually supposed to go here
+                        'sequence':str( fasta_sequences[name].seq)
                     }
                 }
-            ]
-    
-            inputs['_'.join(pair)] = dict(pair_dict)
-    
-            for cof in cofactor_list:
-                pair_dict['sequences'].append(
-                    {
-                        'ligand': {
-                            'id': 'C',
-                            'ccdCodes': [cof]
-                        }
+            # If using one_v_many, it could fail because the protein is in
+            # the anchor sequences, so we catch that error and try the other
+            except KeyError:
+                seq_dict = {
+                    'protein': {
+                        'id': id_str, ## TODO figure out what is actually supposed to go here
+                        'sequence': str(anchor_sequences[name].seq)
                     }
-                )
-                inputs['_'.join(pair) + f'_{cof}'] = dict(pair_dict)
-    
-        return inputs
+                }
+        # Both cofactor and ligand use the keys 'ligand' and 'ccdCodes'
+        else:
+            seq_dict = {'ligand': {"id": id_str, "ccdCodes": [name]}}
+        # Add it to the list of sequences for this dict
+        instance_dict['sequences'].append(seq_dict)
 
-def generateJSONs(fasta_sequences, ligand_list=None, cofactor_list=None, anchor_sequences=None, protein_comparison_type='folding_only'):
+    return instance_dict
+
+
+def generateJSONs(fasta_sequences,
+                  ligand_list=None,
+                  cofactor_list=None,
+                  anchor_sequences=None,
+                  protein_comparison_type='folding_only',
+                  make_self_matches=False):
     """
     Make paired json files for ligands and proteins.
 
     parameters:
-        protein_fasta, str: path to a fasta file containing protein sequences to compare, file path
-        ligand_list, list of str: ligand CCD codes
+        fasta_sequences, SeqIO index object: protein sequences to compare
+        ligand_list, list of str, optional: ligand CCD codes
         cofactor_list, list of str, optional: cofactor CCD codes
+        anchor_sequences, SeqIO index object, optional: anchor protein
+            sequences for one_v_many comparisons
+        protein_comparison_type, str: what type of comparison is being made
+        make_self_matches, bool: whether or not to include self matches in
+            the many_v_many case
 
     returns:
-        inputs, dict of dict: keys are pair names, values are formatted json inputs
+        inputs, dict of dict: keys are pair names, values are formatted json
+            inputs
     """
-    # Define empty list if no cofactors or ligands
-    if cofactor_list is None:
-        cofactor_list = []
-    if ligand_list is None:
-        ligand_list = []
+    # The challenge of this code is to try and be as efficient as possible with
+    # making a bunch of 3- or 4-way combinations. The most semantically
+    # straightforward way to do this would be a bunch of nested lists, where you
+    # go over the proteins, then the ligands and then the cofactors. However, a
+    # cleaner (syntactically, I am actually not sure if it's more efficient
+    # computationally speaking) way to do this would be to use itertools.product
+    # over a group of lists to make tuples of (protein1, protein2 (optional),
+    # ligand, cofactor). The only challenge there is, how do we keep track of
+    # which CCD codes are ligands vs. cofactors when we do that? Here, we'll pre-
+    # pend each ligand with 'L_' and each cofactor with 'C_', as L and C are the
+    # id strings we need anyway for the json. We will also put 'P_' on the
+    # beginning of proteins, as they require an id of P as well.
+    protein_list = ['P_' + prot for prot in fasta_sequences.keys()]
+    if cofactor_list is not None:
+        cofactor_list = ['C_' + cof for cof in cofactor_list]
+    if ligand_list is not None:
+        ligand_list = ['L_' + lig for lig in ligand_list]
+    if anchor_sequences is not None:
+        anchor_list = ['P_' + prot for prot in anchor_sequences.keys()]
+    else:
+        anchor_list = None
 
-    # Determine what kind of output we're generating and call the corresponding
-    # function. Calling separate functions here allows us to just make a new one
-    # if we want a new functionality, as opposed to having to figure out where
-    # to put it in a larger body of code with multiple purposes
-    if protein_comparison_type == 'folding_only':
-        return make_folding_only_jsons(fasta_sequences, ligand_list, cofactor_list)
-    elif protein_comparison_type == 'many_v_many':
-        return make_many_v_many_jsons(fasta_sequences, ligand_list, cofactor_list)
-    elif protein_comparison_type == 'one_v_many':
-        return make_one_v_many_jsons(fasta_sequences, ligand_list, cofactor_list, anchor_sequences=anchor_fasta_sequences)
+    # The only thing preventing product from being a truly pretty implementation
+    # is that passing an empty list as one of the iterables to product makes it
+    # return an empty list. Rather than making different calls with if statements,
+    # I'll make a list of lists that just excludes anything empty, and pass that.
+    product_components = [
+        l for l in [protein_list, ligand_list, cofactor_list, anchor_list]
+        if (l is not None) and l != []
+    ]
+    if protein_comparison_type == 'many_v_many':
+        # Add the protein list again so we can get all the protein combinations.
+        # Note how we're inserting the protein list at the front, next to the
+        # other protein list (rather than appending on the end) -- this is on
+        # purpose, to simplify dealing with repeated protein combinations 
+        product_components.insert(0, protein_list)
+
+    # Get the combinations and iterate to make jsons. We don't make this a list
+    # first because the iterator only holds one item in memory at a time and is
+    # more efficient. tqdm will show progress but not percentage of total, because
+    # it can't know without storing the whole thing in memory
+    inputs = {}
+    protein_combo_tracker = []
+    for combo in tqdm(product(*product_components)): # Have to unpack the list of lists with *
+        # The one problem with this approach is that when we provide the list of
+        # protein sequences twice for many_v_many, we will get both orders of
+        # every combination; i.e. (proteinA, proteinB) and (proteinB, proteinA)
+        # will both appear in the results. We don't actually want this behavior,
+        # because from AlphaFold's perspective those are the same pair, and it
+        # will double the size of what you end up running. So here, we will check
+        # if the reverse of the protein pair is already in the results, and if
+        # so, skip it. The one problem with this method is that if there are
+        # ligands or cofactors, we need to ignore them; this is partially solved
+        # by having put the protein lists together in the input to product, as
+        # we can then just look at the first two things, but we still need to
+        # include the ligand and cofactor or else risk tossing things we actually
+        # still need
+        if protein_comparison_type == 'many_v_many':
+            if (combo[1], combo[0],) + combo[2:] in protein_combo_tracker:
+                continue
+            # Also use this opportunity to skip self matches if needed
+            if not make_self_matches:
+                if combo[0] == combo[1]:
+                    continue
+        inp = generate_seq_dicts(combo, fasta_sequences, anchor_sequences)
+        inputs['_'.join(combo)] = inp
+        protein_combo_tracker.append(combo)
+
+    return inputs
 
 
-def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta, protein_comparison_type):
+def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
+         protein_comparison_type, make_self_matches):
 
     # Read in the provided input files
     print('\nReading inputs...')
-    
-    fasta_sequences = SeqIO.parse(open(fasta),'fasta')
+
+    # Read the proteins in with index instead of parse, because it allows us to
+    # get sequences using the protein ID as a key
+    fasta_sequences = SeqIO.index(open(fasta), 'fasta')
     print(f'There are {len(fasta_sequences)} fasta sequences.')
 
     if ligands_file is not None:
@@ -122,14 +195,17 @@ def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta, p
             # Make sure there are no trailing whitespaces
             cofactors = [l.strip() for l in f.readlines()]
         print(f'There are {len(cofactors)} cofactors.')
-        
+
     if anchor_fasta is not None:
-        anchor_fasta_sequences = SeqIO.parse(open(anchor_fasta),'fasta')
-        print(f'There are {len(anchor_fasta_sequences)} anchor fasta sequences.')
+        anchor_fasta_sequences = SeqIO.index(open(anchor_fasta), 'fasta')
+        print(
+            f'There are {len(anchor_fasta_sequences)} anchor fasta sequences.')
 
     # Call the function to generate the jsons
     print('\nGenerating jsons...')
-    inputs = generateJSONs(fasta_sequences, ligands, cofactors, anchor_fasta_sequences, protein_comparison_type)
+    inputs = generateJSONs(fasta_sequences, ligands, cofactors,
+                           anchor_fasta_sequences, protein_comparison_type,
+                          make_self_matches)
 
     # Save the output
     print('\nSaving jsons...')
@@ -146,41 +222,35 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Format data for AlphaFold3')
 
     # Define the command line args that the parser will accept
-    parser.add_argument(
-        'fasta',
-        type=str,
-        help='Path to fasta file with protein sequences'
-    )
-    parser.add_argument(
-        'out_loc',
-        type=str,
-        help='Destination directory for the output JSON files'
-    )
+    parser.add_argument('fasta',
+                        type=str,
+                        help='Path to fasta file with protein sequences')
+    parser.add_argument('out_loc',
+                        type=str,
+                        help='Destination directory for the output JSON files')
     parser.add_argument(
         'outprefix',
         type=str,
-        help='The experiment being preformed, will prepend every output filename'
-    )
+        help=
+        'The experiment being preformed, will prepend every output filename')
     paraser.add_argument(
         '-ligands_file',
         default=None,
         type=str,
         help='Path to to file with the CCD ligand codes. Should be a .txt file '
-        'with one code per line'  
-    )
+        'with one code per line')
     parser.add_argument(
         '-cofactor_file',
         default=None,
         type=str,
         help='Path to file with the relevant cofactors. Should be a .txt file '
-        'with one code per line'
-    )
+        'with one code per line')
     parser.add_argument(
         '-anchor_fasta',
         default=None,
         type=str,
-        help='Path to a secondary fasta file for one- or few-vs-many comparisons'
-    )
+        help=
+        'Path to a secondary fasta file for one- or few-vs-many comparisons')
     parser.add_argument(
         '-protein_comparison_type',
         default='folding_only',
@@ -193,12 +263,18 @@ if __name__ == "__main__":
         '        allowed to contain more than one protein'
         '    folding_only, doesn\'t pair any proteins, only cofactors and ligands'
     )
+    parser.add_argument(
+        '--make_self_matches',
+        action='store_true',
+        help='Whether or not to include each protein against itself in the '
+        'many_v_many scenario' 
+    )
 
     # Get the absolute paths of files and directories
     args = parser.parse_args()
     args.fasta = abspath(args.fasta)
     args.out_loc = abspath(args.out_loc)
-    
+
     # We want to leave the optional path args as None if not specified,
     # Using abspath would throw an error
     if args.ligand_file is not None:
@@ -208,4 +284,6 @@ if __name__ == "__main__":
     if args.anchor_fasta is not None:
         args.anchor_fasta = abspath(args.anchor_fasta)
 
-    main(args.fasta, args.out_loc, args.outprefix, args.ligands_file, args.cofactor_file, args.anchor_fasta, args.protein_comparison_type)
+    main(args.fasta, args.out_loc, args.outprefix, args.ligands_file,
+         args.cofactor_file, args.anchor_fasta, args.protein_comparison_type,
+        args.make_self_matches)
