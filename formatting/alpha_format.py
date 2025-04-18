@@ -37,6 +37,8 @@ def generate_seq_dicts(group, fasta_sequences, anchor_sequences=None):
     # elements we use to pair and generates the combinations.
     
     instance_dict = {}
+    print('\n\n\nHELLO WORLD')
+    print(group)
     instance_dict['name'] = '_'.join(
         group)  # Could use some finessing for aesthetics
 
@@ -58,7 +60,7 @@ def generate_seq_dicts(group, fasta_sequences, anchor_sequences=None):
                     'protein': {
                         'id':
                         id_str,  ## TODO figure out what is actually supposed to go here
-                        'sequence':str( fasta_sequences[name].seq)
+                        'sequence':str(fasta_sequences[name].seq)
                     }
                 }
             # If using one_v_many, it could fail because the protein is in

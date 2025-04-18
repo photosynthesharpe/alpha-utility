@@ -35,7 +35,7 @@ def combo_one_v_many():
 
 @pytest.fixture
 def combo_many_v_many():
-    return ('P_TaPGP', 'P_SePGP', 'L_PGA')
+    return ('P_TaPGP', 'P_CnPGP', 'L_PGA')
 
 
 @pytest.fixture
@@ -86,7 +86,7 @@ def one_v_many_result():
 def many_v_many_result():
     return {
         'name':
-        'P_TaPGP_P_SePGP_L_PGA',
+        'P_TaPGP_P_CnPGP_L_PGA',
         'sequences': [{
             'protein': {
                 'id':
@@ -99,7 +99,7 @@ def many_v_many_result():
                 'id':
                 'P',
                 'sequence':
-                'MQAIIFDFDGTLVDSLPTVVAIANAHAPDFGYDPIDERDYAQLRQWSSRTIVRRAGLSPWQQARLLQRVQRQLGDCLPALQLFPGVADLLAQLRSRSLCLGILSSNSRQNIEAFLQRQGLRSLFSVVQAGTPILSKRRALSQLVAREGWQPAAVMYVGDETRDVEAARQVGLIAVAVTWGFNDRQSLVAACPDWLLETPSDLLQAVTQLMRQ'
+                'MGRATVDDKKALVDKVDCFIFDCDGVIWKGDSVIDGVPETLDMLRKLNKRLVFVTNNSTKSRAGYLGKFTSLGLKVKAEEIYSSSYAAAAYLESINFKKKVYVVGEVGIQEELDLKGISHLGGPADADKKVTLKEGVFFGHDHEVGAVVVGFDRNINYHKIQYATLCIRENPGCLFIATNRDAVTHLTEAQEWAGNGSMVGAIIGSTKREPITVGKPNGFMLENIAKSYGLKPEQICMVGDRLDTDIMFGKNGGLTTCLVLSGVTTEEELLSPKNTIAPDFYMNQLSDMLAIQNSVGSYVEA'
             }
         }, {
             'ligand': {
@@ -291,9 +291,9 @@ def many_v_many_no_ligand_no_cofactor_results(CnPGP, TaPGP, TfPGP):
             'name': 'P_CnPGP_P_TaPGP',
             'sequences': [CnPGP, TaPGP]
         },
-        'P_TfPGP_P_CnPGP': {
-            'name': 'P_TfPGP_P_CnPGP',
-            'sequences': [TfPGP, CnPGP]
+        'P_CnPGP_P_TfPGP': {
+            'name': 'P_CnPGP_P_TfPGP',
+            'sequences': [CnPGP, TfPGP]
         },
         'P_TaPGP_P_TfPGP': {
             'name': 'P_TaPGP_P_TfPGP',
@@ -316,7 +316,7 @@ def test_generateJSONs_folding_only_ligand_and_cofactor(
 def test_generateJSONs_one_v_many_ligands_only(
         fasta_sequences, ligand_list_multiple, anchor_sequences,
         one_v_many_ligands_only_results):
-    
+
     result = af.generateJSONs(fasta_sequences,
                               ligand_list=ligand_list_multiple,
                               anchor_sequences=anchor_sequences, protein_comparison_type='one_v_many')
