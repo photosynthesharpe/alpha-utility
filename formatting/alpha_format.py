@@ -76,6 +76,16 @@ def generate_seq_dicts(group, fasta_sequences, anchor_sequences=None):
         # Add it to the list of sequences for this dict
         instance_dict['sequences'].append(seq_dict)
 
+        # Add additional required arguments
+        ## TODO I hardcoded these because we're all going to be using AlphaFold3
+        ## but you could easily take them as an argument with argparse and pass
+        ## them through to here
+        instance_dict['dialect'] = 'alphafold3'
+        instance_dict['version'] = 2
+        # Re: this next param, no clude how many structures people want, def want
+        # to update this to be passable
+        instance_dict['modelSeeds'] = [1855]
+
     return instance_dict
 
 
