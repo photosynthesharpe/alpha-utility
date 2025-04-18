@@ -37,8 +37,6 @@ def generate_seq_dicts(group, fasta_sequences, anchor_sequences=None):
     # elements we use to pair and generates the combinations.
     
     instance_dict = {}
-    print('\n\n\nHELLO WORLD')
-    print(group)
     instance_dict['name'] = '_'.join(
         group)  # Could use some finessing for aesthetics
 
