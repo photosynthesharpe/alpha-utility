@@ -183,7 +183,7 @@ def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
 
     # Read the proteins in with index instead of parse, because it allows us to
     # get sequences using the protein ID as a key
-    fasta_sequences = SeqIO.index(open(fasta), 'fasta')
+    fasta_sequences = SeqIO.index(fasta, 'fasta')
     print(f'There are {len(fasta_sequences)} fasta sequences.')
 
     if ligands_file is not None:
@@ -191,17 +191,23 @@ def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
             # Make sure there are no trailing whitespaces
             ligands = [l.strip() for l in f.readlines()]
         print(f'There are {len(ligands)} ligands.')
+    else:
+        ligands = None
 
     if cofactor_file is not None:
         with open(cofactor_file) as f:
             # Make sure there are no trailing whitespaces
             cofactors = [l.strip() for l in f.readlines()]
         print(f'There are {len(cofactors)} cofactors.')
+    else:
+        cofactors = None
 
     if anchor_fasta is not None:
-        anchor_fasta_sequences = SeqIO.index(open(anchor_fasta), 'fasta')
+        anchor_fasta_sequences = SeqIO.index(anchor_fasta, 'fasta')
         print(
             f'There are {len(anchor_fasta_sequences)} anchor fasta sequences.')
+    else:
+        anchor_fasta_sequences = None
 
     # Call the function to generate the jsons
     print('\nGenerating jsons...')
@@ -212,7 +218,7 @@ def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
     # Save the output
     print('\nSaving jsons...')
     for specific_name, inp in inputs.items():
-        with open(f'{out_loc}/{out_prefix}_{specific_name}.json', 'w') as f:
+        with open(f'{out_loc}/{outprefix}_{specific_name}.json', 'w') as f:
             json.dump(inp, f)
 
     print('\nDone!')
@@ -235,7 +241,7 @@ if __name__ == "__main__":
         type=str,
         help=
         'The experiment being preformed, will prepend every output filename')
-    paraser.add_argument(
+    parser.add_argument(
         '-ligands_file',
         default=None,
         type=str,
@@ -279,7 +285,7 @@ if __name__ == "__main__":
 
     # We want to leave the optional path args as None if not specified,
     # Using abspath would throw an error
-    if args.ligand_file is not None:
+    if args.ligands_file is not None:
         args.ligands_file = abspath(args.ligands_file)
     if args.cofactor_file is not None:
         args.cofactor_file = abspath(args.cofactor_file)
