@@ -8,6 +8,10 @@ same goes for how many proteins you provide for the many_v_many or one_v_many
 options -- the computational complexity of combinations can get prohibitively
 high relatively quickly.
 
+This attempts to generalize the includion of multi-subunit proteins; however,
+I have not exhaustively tested all the ways they could appear in the data, so
+use with caution.
+
 Authors: Serena & Luke
 """
 import argparse
@@ -16,9 +20,93 @@ import json
 from tqdm import tqdm
 from itertools import product, combinations
 from Bio import SeqIO
+from string import ascii_uppercase
 
 
-def generate_seq_dicts(group, fasta_sequences, anchor_sequences=None):
+def format_protein_seqs(name,
+                        fasta_sequences,
+                        anchor_sequences=None,
+                        multi_subunit_proteins=None,
+                        in_complex=None,
+                        prev_letters=0):
+    """
+    Format the sequence dicts for proteins, including multi-subunit proteins.
+
+    parameters:
+        name, str: protein ID
+        fasta_sequences, SeqIO index object: protein sequences to compare
+        anchor_sequences, SeqIO index object, optional: anchor protein
+            sequences for one_v_many comparisons
+        multi_subunit_proteins, dict, optional: keys are ID's for proteins with
+            multiple subunits, values are dicts with fasta ID: number of
+            occurrences pairs
+        in_complex, dict: keys are ID's that are in a complex, values are their
+            complex ID
+        prev_letters, int, default 0: how many sequences are already in the
+            dict -- can't repeat letters of the alphabet across subunits or
+            pairs of sequences
+
+    returns:
+        protein_seqs, list of dict: protein sequences
+        total_letters
+    """
+    # So we can check use if statement later
+    if in_complex is None:
+        in_complex = {}
+
+    # Turn alphabet string into a list
+    alphabet = [letter for letter in ascii_uppercase]
+    
+    # Figure out which dict has the protein --
+    # We're going to assume that all the subunits appear in one or the
+    # other of the two fasta sequence files
+    if name in fasta_sequences:
+        has_seqs = fasta_sequences
+    else:
+        has_seqs = anchor_sequences
+
+    # Check if it has multiple subunits
+    if name in in_complex:
+        complex_name = in_complex[name]
+        # Now we need to fish out all the subunits
+        seqs = []
+        total_letters = prev_letters  # So we can do the ID letters without repeats
+        for sub, num in multi_subunit_proteins[complex_name].items():
+            id_letters = alphabet[total_letters:total_letters + num]
+            # Need to start doubling letters if we get past 26
+            alphabet_iter = total_letters // 26
+            # I am only implementing the ability to have as many sequences as double
+            # letters can allow for, because that is a lot, I can't imagine somebody
+            # doing more! But if I'm wrong, you'll have to change this implementation
+            assert alphabet_iter < 26, 'Too many proteins! Ran out of letters!'
+            if alphabet_iter > 0:
+                id_letters = [letter + alphabet[alphabet_iter - 1] for letter in id_letters]
+            total_letters += num
+            sub_seq = {
+                'protein': {
+                    'id': id_letters,
+                    'sequence': str(has_seqs[sub].seq)
+                }
+            }
+            seqs.append(sub_seq)
+
+    # If not, just make one sequence, but put in a list for consistency
+    else:
+        seqs = [{
+            'protein': {
+                'id': [alphabet[prev_letters]],
+                'sequence': str(has_seqs[name].seq)
+            }
+        }]
+        total_letters = 1
+    
+    return seqs, total_letters
+
+
+def generate_seq_dicts(group,
+                       fasta_sequences,
+                       anchor_sequences=None,
+                       multi_subunit_proteins=None):
     """
     Generate sequence dicts from all desired combinations.
 
@@ -27,6 +115,9 @@ def generate_seq_dicts(group, fasta_sequences, anchor_sequences=None):
         fasta_sequences, SeqIO index object: protein sequences to compare
         anchor_sequences, SeqIO index object, optional: anchor protein
             sequences for one_v_many comparisons
+        multi_subunit_proteins, dict, optional: keys are ID's for proteins with
+            multiple subunits, values are dicts with fasta ID: number of
+            occurrences pairs
 
     returns:
         instance_dict, dict: the formatted json for this entry
@@ -35,48 +126,53 @@ def generate_seq_dicts(group, fasta_sequences, anchor_sequences=None):
     # function was getting a little unwieldy in terms of lines, but it also allows
     # us to unit test this section separately from the section that gets the basic
     # elements we use to pair and generates the combinations.
-    
+
+    # Reindex multi subunit proteins for future reference
+    if multi_subunit_proteins is not None:
+        in_complex = {
+            f_id: comp_id
+            for comp_id, members in multi_subunit_proteins.items()
+            for f_id, num in members.items()
+        }
+    else:
+        in_complex = {}
+
     instance_dict = {}
-    instance_dict['name'] = '_'.join(
-        group)  # Could use some finessing for aesthetics
+    instance_name_parts = []
 
     # We just have to go over every element and make a dict for it. Proteins
     # are a little different so we'll use a full loop as opposed to a
     # (typically way prettier) list comp
     instance_dict['sequences'] = []
+    total_letters = 0
     for item in group:
         # There could be other underscores in an ID, so we need to safeguard
         # when splitting the string to get the prepended string back.
-        id_str = item.split('_')[0]
+        seq_type = item.split('_')[0]
         name = '_'.join(item.split('_')
                         [1:])  # Rather than just the second item of the split
         # If protein, we need the 'sequence' key rather than 'ccdCodes'
-        if id_str == 'P':
-            # Look for the sequence in the protein list
-            try:
-                seq_dict = {
-                    'protein': {
-                        'id':
-                        id_str,  ## TODO figure out what is actually supposed to go here
-                        'sequence':str(fasta_sequences[name].seq)
-                    }
-                }
-            # If using one_v_many, it could fail because the protein is in
-            # the anchor sequences, so we catch that error and try the other
-            except KeyError:
-                seq_dict = {
-                    'protein': {
-                        'id': id_str, ## TODO figure out what is actually supposed to go here
-                        'sequence': str(anchor_sequences[name].seq)
-                    }
-                }
+        if seq_type == 'P':
+            if name in in_complex:
+                instance_name_parts.append(in_complex[name])
+            else:
+                instance_name_parts.append(name)
+            seqs, update_total_letters = format_protein_seqs(name, fasta_sequences,
+                                                      anchor_sequences,
+                                                      multi_subunit_proteins,
+                                                      in_complex,
+                                                      total_letters)
+            total_letters += update_total_letters
         # Both cofactor and ligand use the keys 'ligand' and 'ccdCodes'
         else:
-            seq_dict = {'ligand': {"id": id_str, "ccdCodes": [name]}}
+            seqs = [{'ligand': {"id": [ascii_uppercase[total_letters]], "ccdCodes": [name]}}]
+            total_letters += 1
+            instance_name_parts.append(name)
         # Add it to the list of sequences for this dict
-        instance_dict['sequences'].append(seq_dict)
+        instance_dict['sequences'].extend(seqs)
 
         # Add additional required arguments
+        instance_dict['name'] = '_'.join(instance_name_parts)
         ## TODO I hardcoded these because we're all going to be using AlphaFold3
         ## but you could easily take them as an argument with argparse and pass
         ## them through to here
@@ -94,6 +190,7 @@ def generateJSONs(fasta_sequences,
                   cofactor_list=None,
                   anchor_sequences=None,
                   protein_comparison_type='folding_only',
+                  multi_subunit_proteins=None,
                   make_self_matches=False):
     """
     Make paired json files for ligands and proteins.
@@ -105,6 +202,9 @@ def generateJSONs(fasta_sequences,
         anchor_sequences, SeqIO index object, optional: anchor protein
             sequences for one_v_many comparisons
         protein_comparison_type, str: what type of comparison is being made
+        multi_subunit_proteins, dict, optional: keys are ID's for proteins with
+            multiple subunits, values are dicts with fasta ID: number of
+            occurrences pairs
         make_self_matches, bool: whether or not to include self matches in
             the many_v_many case
 
@@ -121,9 +221,8 @@ def generateJSONs(fasta_sequences,
     # over a group of lists to make tuples of (protein1, protein2 (optional),
     # ligand, cofactor). The only challenge there is, how do we keep track of
     # which CCD codes are ligands vs. cofactors when we do that? Here, we'll pre-
-    # pend each ligand with 'L_' and each cofactor with 'C_', as L and C are the
-    # id strings we need anyway for the json. We will also put 'P_' on the
-    # beginning of proteins, as they require an id of P as well.
+    # pend each ligand with 'L_' and each cofactor with 'C_'. We will also put
+    # 'P_' on the beginning of proteins.
     protein_list = ['P_' + prot for prot in fasta_sequences.keys()]
     if cofactor_list is not None:
         cofactor_list = ['C_' + cof for cof in cofactor_list]
@@ -146,7 +245,7 @@ def generateJSONs(fasta_sequences,
         # Add the protein list again so we can get all the protein combinations.
         # Note how we're inserting the protein list at the front, next to the
         # other protein list (rather than appending on the end) -- this is on
-        # purpose, to simplify dealing with repeated protein combinations 
+        # purpose, to simplify dealing with repeated protein combinations
         product_components.insert(0, protein_list)
 
     # Get the combinations and iterate to make jsons. We don't make this a list
@@ -155,7 +254,8 @@ def generateJSONs(fasta_sequences,
     # it can't know without storing the whole thing in memory
     inputs = {}
     protein_combo_tracker = []
-    for combo in tqdm(product(*product_components)): # Have to unpack the list of lists with *
+    for combo in tqdm(product(
+            *product_components)):  # Have to unpack the list of lists with *
         # The one problem with this approach is that when we provide the list of
         # protein sequences twice for many_v_many, we will get both orders of
         # every combination; i.e. (proteinA, proteinB) and (proteinB, proteinA)
@@ -168,23 +268,29 @@ def generateJSONs(fasta_sequences,
         # by having put the protein lists together in the input to product, as
         # we can then just look at the first two things, but we still need to
         # include the ligand and cofactor or else risk tossing things we actually
-        # still need
+        # still need. We also have to check for the same order because each subunit
+        # will end up with its own comparison
         if protein_comparison_type == 'many_v_many':
-            if (combo[1], combo[0],) + combo[2:] in protein_combo_tracker:
+            if (
+                    combo[1],
+                    combo[0],
+            ) + combo[
+                    2:] in protein_combo_tracker or combo in protein_combo_tracker:
                 continue
             # Also use this opportunity to skip self matches if needed
             if not make_self_matches:
                 if combo[0] == combo[1]:
                     continue
-        inp = generate_seq_dicts(combo, fasta_sequences, anchor_sequences)
-        inputs['_'.join(combo)] = inp
+        inp = generate_seq_dicts(combo, fasta_sequences, anchor_sequences,
+                                 multi_subunit_proteins)
+        inputs['_'.join(['_'.join(c.split('_')[1:]) for c in combo])] = inp
         protein_combo_tracker.append(combo)
 
     return inputs
 
 
 def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
-         protein_comparison_type, make_self_matches):
+         protein_comparison_type, multi_subunit_proteins, make_self_matches):
 
     # Read in the provided input files
     print('\nReading inputs...')
@@ -217,11 +323,15 @@ def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
     else:
         anchor_fasta_sequences = None
 
+    if multi_subunit_proteins is not None:
+        with open(multi_subunit_proteins) as f:
+            multi_subunit_proteins = json.load(f)
+
     # Call the function to generate the jsons
     print('\nGenerating jsons...')
     inputs = generateJSONs(fasta_sequences, ligands, cofactors,
                            anchor_fasta_sequences, protein_comparison_type,
-                          make_self_matches)
+                           multi_subunit_proteins, make_self_matches)
 
     # Save the output
     print('\nSaving jsons...')
@@ -271,7 +381,7 @@ if __name__ == "__main__":
         '-protein_comparison_type',
         default='folding_only',
         type=str,
-        help='Options are: '
+        help='Options are:'
         '    many_v_many, gets every possible pair of proteins. Only requires '
         '        the single required fasta input'
         '    one_v_many, gets every comparison of the protein(s) in anchor_fasta '
@@ -280,11 +390,23 @@ if __name__ == "__main__":
         '    folding_only, doesn\'t pair any proteins, only cofactors and ligands'
     )
     parser.add_argument(
+        '-multi_subunit_proteins',
+        default=None,
+        type=str,
+        help='Path to a json that identifies multi-subunit proteins. The '
+        'structure of the json for a single protein with 2 kinds of subunits '
+        'is the following: '
+        '{"complex_name": {"subunit_1": 8, "subunit_2": 8}}, where complex_name '
+        'can be any arbitrary string, but subunit_1 and subunit_2 need to be '
+        'valid identifiers in at least one provided fasta, and the values in '
+        'the internal dict are the number of times that subunit appears in the '
+        'complex. If only one subunit is found, a warning will be raised, but '
+        'will not cause an exception.')
+    parser.add_argument(
         '--make_self_matches',
         action='store_true',
         help='Whether or not to include each protein against itself in the '
-        'many_v_many scenario' 
-    )
+        'many_v_many scenario')
 
     # Get the absolute paths of files and directories
     args = parser.parse_args()
@@ -299,7 +421,9 @@ if __name__ == "__main__":
         args.cofactor_file = abspath(args.cofactor_file)
     if args.anchor_fasta is not None:
         args.anchor_fasta = abspath(args.anchor_fasta)
+    if args.multi_subunit_proteins is not None:
+        args.multi_subunit_proteins = abspath(args.multi_subunit_proteins)
 
     main(args.fasta, args.out_loc, args.outprefix, args.ligands_file,
          args.cofactor_file, args.anchor_fasta, args.protein_comparison_type,
-        args.make_self_matches)
+         args.multi_subunit_proteins, args.make_self_matches)

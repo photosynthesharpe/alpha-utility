@@ -10,7 +10,7 @@ import sys
 sys.path.append('../formatting')
 import alpha_format as af
 
-############################ generate_seq_dicts ###############################
+############################ format_protein_seqs ##############################
 
 
 @pytest.fixture
@@ -21,6 +21,113 @@ def fasta_sequences():
 @pytest.fixture
 def anchor_sequences():
     return SeqIO.index('anchor_proteins.fasta', 'fasta')
+
+
+@pytest.fixture
+def multimers():
+    return {
+        'fake_multimer_base_fasta': {
+            'CnPGP': 4,
+            'TaPGP': 6
+        },
+        'fake_multimer_anchor_fasta': {
+            'SePGP': 8
+        }
+    }
+
+
+@pytest.fixture
+def in_complex():
+    return {
+        'CnPGP': 'fake_multimer_base_fasta',
+        'TaPGP': 'fake_multimer_base_fasta',
+        'SePGP': 'fake_multimer_anchor_fasta'
+    }
+
+
+@pytest.fixture
+def base_name():
+    return 'CnPGP'
+
+
+@pytest.fixture
+def anchor_name():
+    return 'SePGP'
+
+
+@pytest.fixture
+def without_multimers_result():
+    return ([{
+        'protein': {
+            'id': ['A'],
+            'sequence':
+            'MGRATVDDKKALVDKVDCFIFDCDGVIWKGDSVIDGVPETLDMLRKLNKRLVFVTNNSTKSRAGYLGKFTSLGLKVKAEEIYSSSYAAAAYLESINFKKKVYVVGEVGIQEELDLKGISHLGGPADADKKVTLKEGVFFGHDHEVGAVVVGFDRNINYHKIQYATLCIRENPGCLFIATNRDAVTHLTEAQEWAGNGSMVGAIIGSTKREPITVGKPNGFMLENIAKSYGLKPEQICMVGDRLDTDIMFGKNGGLTTCLVLSGVTTEEELLSPKNTIAPDFYMNQLSDMLAIQNSVGSYVEA'
+        }
+    }], 1)
+
+
+@pytest.fixture
+def with_multimers_base_result():
+    return ([{
+        'protein': {
+            'id': ['A', 'B', 'C', 'D'],
+            'sequence':
+            'MGRATVDDKKALVDKVDCFIFDCDGVIWKGDSVIDGVPETLDMLRKLNKRLVFVTNNSTKSRAGYLGKFTSLGLKVKAEEIYSSSYAAAAYLESINFKKKVYVVGEVGIQEELDLKGISHLGGPADADKKVTLKEGVFFGHDHEVGAVVVGFDRNINYHKIQYATLCIRENPGCLFIATNRDAVTHLTEAQEWAGNGSMVGAIIGSTKREPITVGKPNGFMLENIAKSYGLKPEQICMVGDRLDTDIMFGKNGGLTTCLVLSGVTTEEELLSPKNTIAPDFYMNQLSDMLAIQNSVGSYVEA'
+        }
+    }, {
+        'protein': {
+            'id': ['E', 'F', 'G', 'H', 'I', 'J'],
+            'sequence':
+            'MSAAQPLTDADHLIDSVETFIFDCDGVIWKGDKLIDGVPQTLDMLRSKGKRLVFVTNNSTKSRKQYGKKFETLGLNVNEEEIFASSFAAAAYLQSIVFPKDKKVYVIGEDGILKELELAGFQYLGGPEDGDKKIELKPGFLMEHDKDVGAVVVGFDRNFNYYKIQYGTLCIRENPGCLFIATNRDAVTHLTDAQEWAGGGSMVGALCGSTQRQPLVVGKPSTFMMDYLANKFGILKSQICMVGDRLDTDILFGQNGGCKTLLVLSGVTTLSMLQSPDNSIQPDFYTNKISDFLSLKATAL'
+        }
+    }], 10)
+
+
+@pytest.fixture
+def with_multimers_anchor_result():
+    return ([{
+        'protein': {
+            'id': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+            'sequence':
+            'MQAIIFDFDGTLVDSLPTVVAIANAHAPDFGYDPIDERDYAQLRQWSSRTIVRRAGLSPWQQARLLQRVQRQLGDCLPALQLFPGVADLLAQLRSRSLCLGILSSNSRQNIEAFLQRQGLRSLFSVVQAGTPILSKRRALSQLVAREGWQPAAVMYVGDETRDVEAARQVGLIAVAVTWGFNDRQSLVAACPDWLLETPSDLLQAVTQLMRQ'
+        }
+    }], 8)
+
+
+def test_format_protein_seqs_without_multimers(base_name, fasta_sequences,
+                                               without_multimers_result):
+
+    result = af.format_protein_seqs(base_name, fasta_sequences)
+
+    assert result == without_multimers_result
+
+
+def test_format_protein_seqs_with_multimers_base(base_name, fasta_sequences,
+                                                 multimers, in_complex,
+                                                 with_multimers_base_result):
+
+    result = af.format_protein_seqs(base_name,
+                                    fasta_sequences,
+                                    multi_subunit_proteins=multimers,
+                                    in_complex=in_complex)
+
+    assert result == with_multimers_base_result
+
+
+def test_format_protein_seqs_with_multimers_anchor(
+        anchor_name, fasta_sequences, anchor_sequences, multimers, in_complex,
+        with_multimers_anchor_result):
+
+    result = af.format_protein_seqs(anchor_name,
+                                    fasta_sequences,
+                                    anchor_sequences,
+                                    multi_subunit_proteins=multimers,
+                                    in_complex=in_complex)
+
+    assert result == with_multimers_anchor_result
+
+
+############################ generate_seq_dicts ###############################
 
 
 @pytest.fixture
@@ -42,15 +149,19 @@ def combo_many_v_many():
 def folding_only_result():
     return {
         'name':
-        'P_CnPGP',
+        'CnPGP',
         'sequences': [{
             'protein': {
-                'id':
-                'P',
+                'id': ['A'],
                 'sequence':
                 'MGRATVDDKKALVDKVDCFIFDCDGVIWKGDSVIDGVPETLDMLRKLNKRLVFVTNNSTKSRAGYLGKFTSLGLKVKAEEIYSSSYAAAAYLESINFKKKVYVVGEVGIQEELDLKGISHLGGPADADKKVTLKEGVFFGHDHEVGAVVVGFDRNINYHKIQYATLCIRENPGCLFIATNRDAVTHLTEAQEWAGNGSMVGAIIGSTKREPITVGKPNGFMLENIAKSYGLKPEQICMVGDRLDTDIMFGKNGGLTTCLVLSGVTTEEELLSPKNTIAPDFYMNQLSDMLAIQNSVGSYVEA'
             }
-        }]
+        }],
+        'dialect':
+        'alphafold3',
+        'version':
+        2,
+        'modelSeeds': [1855]
     }
 
 
@@ -58,27 +169,30 @@ def folding_only_result():
 def one_v_many_result():
     return {
         'name':
-        'P_CnPGP_P_SePGP_C_Mg',
+        'CnPGP_SePGP_C_Mg',
         'sequences': [{
             'protein': {
-                'id':
-                'P',
+                'id': ['A'],
                 'sequence':
                 'MGRATVDDKKALVDKVDCFIFDCDGVIWKGDSVIDGVPETLDMLRKLNKRLVFVTNNSTKSRAGYLGKFTSLGLKVKAEEIYSSSYAAAAYLESINFKKKVYVVGEVGIQEELDLKGISHLGGPADADKKVTLKEGVFFGHDHEVGAVVVGFDRNINYHKIQYATLCIRENPGCLFIATNRDAVTHLTEAQEWAGNGSMVGAIIGSTKREPITVGKPNGFMLENIAKSYGLKPEQICMVGDRLDTDIMFGKNGGLTTCLVLSGVTTEEELLSPKNTIAPDFYMNQLSDMLAIQNSVGSYVEA'
             }
         }, {
             'protein': {
-                'id':
-                'P',
+                'id': ['B'],
                 'sequence':
                 'MQAIIFDFDGTLVDSLPTVVAIANAHAPDFGYDPIDERDYAQLRQWSSRTIVRRAGLSPWQQARLLQRVQRQLGDCLPALQLFPGVADLLAQLRSRSLCLGILSSNSRQNIEAFLQRQGLRSLFSVVQAGTPILSKRRALSQLVAREGWQPAAVMYVGDETRDVEAARQVGLIAVAVTWGFNDRQSLVAACPDWLLETPSDLLQAVTQLMRQ'
             }
         }, {
             'ligand': {
-                'id': 'C',
+                'id': ['C'],
                 'ccdCodes': ['Mg']
             }
-        }]
+        }],
+        'dialect':
+        'alphafold3',
+        'version':
+        2,
+        'modelSeeds': [1855]
     }
 
 
@@ -86,27 +200,30 @@ def one_v_many_result():
 def many_v_many_result():
     return {
         'name':
-        'P_TaPGP_P_CnPGP_L_PGA',
+        'TaPGP_CnPGP_PGA',
         'sequences': [{
             'protein': {
-                'id':
-                'P',
+                'id': ['A'],
                 'sequence':
                 'MSAAQPLTDADHLIDSVETFIFDCDGVIWKGDKLIDGVPQTLDMLRSKGKRLVFVTNNSTKSRKQYGKKFETLGLNVNEEEIFASSFAAAAYLQSIVFPKDKKVYVIGEDGILKELELAGFQYLGGPEDGDKKIELKPGFLMEHDKDVGAVVVGFDRNFNYYKIQYGTLCIRENPGCLFIATNRDAVTHLTDAQEWAGGGSMVGALCGSTQRQPLVVGKPSTFMMDYLANKFGILKSQICMVGDRLDTDILFGQNGGCKTLLVLSGVTTLSMLQSPDNSIQPDFYTNKISDFLSLKATAL'
             }
         }, {
             'protein': {
-                'id':
-                'P',
+                'id': ['B'],
                 'sequence':
                 'MGRATVDDKKALVDKVDCFIFDCDGVIWKGDSVIDGVPETLDMLRKLNKRLVFVTNNSTKSRAGYLGKFTSLGLKVKAEEIYSSSYAAAAYLESINFKKKVYVVGEVGIQEELDLKGISHLGGPADADKKVTLKEGVFFGHDHEVGAVVVGFDRNINYHKIQYATLCIRENPGCLFIATNRDAVTHLTEAQEWAGNGSMVGAIIGSTKREPITVGKPNGFMLENIAKSYGLKPEQICMVGDRLDTDIMFGKNGGLTTCLVLSGVTTEEELLSPKNTIAPDFYMNQLSDMLAIQNSVGSYVEA'
             }
         }, {
             'ligand': {
-                'id': 'L',
+                'id': ['C'],
                 'ccdCodes': ['PGA']
             }
-        }]
+        }],
+        'dialect':
+        'alphafold3',
+        'version':
+        2,
+        'modelSeeds': [1855]
     }
 
 
@@ -161,143 +278,332 @@ def cofactor_list_empty():
 
 
 @pytest.fixture
-def CnPGP():
+def CnPGP_seq():
+    return (
+        'MGRATVDDKKALVDKVDCFIFDCDGVIWKGDSVIDGVPETLDMLRKLNKRLVFVTNNSTKSRAGYLGKFTSLGLKVKAEEIYSSSYAAAAYLESINFKKKVYVVGEVGIQEELDLKGISHLGGPADADKKVTLKEGVFFGHDHEVGAVVVGFDRNINYHKIQYATLCIRENPGCLFIATNRDAVTHLTEAQEWAGNGSMVGAIIGSTKREPITVGKPNGFMLENIAKSYGLKPEQICMVGDRLDTDIMFGKNGGLTTCLVLSGVTTEEELLSPKNTIAPDFYMNQLSDMLAIQNSVGSYVEA'
+    )
+
+
+@pytest.fixture
+def TaPGP_seq():
+    return (
+        'MSAAQPLTDADHLIDSVETFIFDCDGVIWKGDKLIDGVPQTLDMLRSKGKRLVFVTNNSTKSRKQYGKKFETLGLNVNEEEIFASSFAAAAYLQSIVFPKDKKVYVIGEDGILKELELAGFQYLGGPEDGDKKIELKPGFLMEHDKDVGAVVVGFDRNFNYYKIQYGTLCIRENPGCLFIATNRDAVTHLTDAQEWAGGGSMVGALCGSTQRQPLVVGKPSTFMMDYLANKFGILKSQICMVGDRLDTDILFGQNGGCKTLLVLSGVTTLSMLQSPDNSIQPDFYTNKISDFLSLKATAL'
+    )
+
+
+@pytest.fixture
+def TfPGP_seq():
+    return (
+        'MSTAQPLTDADHLIDSVQTFIFDCDGVIWKGDKLIDGVPQTLDMLRSKGKRLVFVTNNSTKSRKQYGKKFETLGLNVNEEEIFASSFAAAAYLQSIDFPKDKKVYVIGEDGILKELELAGFQYLGGPEDGDKKIELKPGFLMEHDKDVGAVVVGFDRYFNYYKIQYGTLCIRENSGCLFIATNRDAVTHLTDAQEWAGGGSMVGALCGSTQRQPLVVGKPSTFMMDYLANKFGILKSQICMVGDRLDTDILFGQNGGCKTLLVLSGVTTLSMLQSPDNSIQPDFYTNKISDFLSLKATAR'
+    )
+
+
+@pytest.fixture
+def SePGP_seq():
+    return (
+        'MQAIIFDFDGTLVDSLPTVVAIANAHAPDFGYDPIDERDYAQLRQWSSRTIVRRAGLSPWQQARLLQRVQRQLGDCLPALQLFPGVADLLAQLRSRSLCLGILSSNSRQNIEAFLQRQGLRSLFSVVQAGTPILSKRRALSQLVAREGWQPAAVMYVGDETRDVEAARQVGLIAVAVTWGFNDRQSLVAACPDWLLETPSDLLQAVTQLMRQ'
+    )
+
+
+@pytest.fixture
+def folding_only_ligands_and_cofactor_results(CnPGP_seq, TfPGP_seq, TaPGP_seq):
     return {
-        'protein': {
-            'id':
-            'P',
-            'sequence':
-            'MGRATVDDKKALVDKVDCFIFDCDGVIWKGDSVIDGVPETLDMLRKLNKRLVFVTNNSTKSRAGYLGKFTSLGLKVKAEEIYSSSYAAAAYLESINFKKKVYVVGEVGIQEELDLKGISHLGGPADADKKVTLKEGVFFGHDHEVGAVVVGFDRNINYHKIQYATLCIRENPGCLFIATNRDAVTHLTEAQEWAGNGSMVGAIIGSTKREPITVGKPNGFMLENIAKSYGLKPEQICMVGDRLDTDIMFGKNGGLTTCLVLSGVTTEEELLSPKNTIAPDFYMNQLSDMLAIQNSVGSYVEA'
+        'CnPGP_PGA_MG': {
+            'name':
+            'CnPGP_PGA_MG',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': CnPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['PGA']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }]
+        },
+        'TaPGP_PGA_MG': {
+            'name':
+            'TaPGP_PGA_MG',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TaPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['PGA']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }]
+        },
+        'TfPGP_PGA_MG': {
+            'name':
+            'TfPGP_PGA_MG',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TfPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['PGA']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }]
+        },
+        'CnPGP_GOL_MG': {
+            'name':
+            'CnPGP_GOL_MG',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': CnPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['GOL']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }]
+        },
+        'TaPGP_GOL_MG': {
+            'name':
+            'TaPGP_GOL_MG',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TaPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['GOL']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }]
+        },
+        'TfPGP_GOL_MG': {
+            'name':
+            'TfPGP_PGA_MG',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TfPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['GOL']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }]
         }
     }
 
 
 @pytest.fixture
-def TaPGP():
+def one_v_many_ligands_only_results(CnPGP, TaPGP, TfPGP, SePGP):
     return {
-        'protein': {
-            'id':
-            'P',
-            'sequence':
-            'MSAAQPLTDADHLIDSVETFIFDCDGVIWKGDKLIDGVPQTLDMLRSKGKRLVFVTNNSTKSRKQYGKKFETLGLNVNEEEIFASSFAAAAYLQSIVFPKDKKVYVIGEDGILKELELAGFQYLGGPEDGDKKIELKPGFLMEHDKDVGAVVVGFDRNFNYYKIQYGTLCIRENPGCLFIATNRDAVTHLTDAQEWAGGGSMVGALCGSTQRQPLVVGKPSTFMMDYLANKFGILKSQICMVGDRLDTDILFGQNGGCKTLLVLSGVTTLSMLQSPDNSIQPDFYTNKISDFLSLKATAL'
+        'CnPGP_SePGP_PGA': {
+            'name':
+            'CnPGP_SePGP_PGA',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': CnPGP_seq
+                }
+            }, {
+                'protein': {
+                    'id': ['B'],
+                    'sequence': SePGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['PGA']
+                }
+            }]
+        },
+        'TaPGP_SePGP_PGA': {
+            'name':
+            'TaPGP_SePGP_PGA',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TaPGP_seq
+                }
+            }, {
+                'protein': {
+                    'id': ['B'],
+                    'sequence': SePGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['PGA']
+                }
+            }]
+        },
+        'TfPGP_SePGP_PGA': {
+            'name':
+            'TfPGP_SePGP_PGA',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TfPGP_seq
+                }
+            }, {
+                'protein': {
+                    'id': ['B'],
+                    'sequence': SePGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['PGA']
+                }
+            }]
+        },
+        'CnPGP_SePGP_GOL': {
+            'name':
+            'CnPGP_SePGP_GOL',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': CnPGP_seq
+                }
+            }, {
+                'protein': {
+                    'id': ['B'],
+                    'sequence': SePGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['GOL']
+                }
+            }]
+        },
+        'TaPGP_SePGP_GOL': {
+            'name':
+            'TaPGP_SePGP_GOL',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TaPGP_seq
+                }
+            }, {
+                'protein': {
+                    'id': ['B'],
+                    'sequence': SePGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['GOL']
+                }
+            }]
+        },
+        'TfPGP_SePGP_GOL': {
+            'name':
+            'TfPGP_SePGP_GOL',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TfPGP_seq
+                }
+            }, {
+                'protein': {
+                    'id': ['B'],
+                    'sequence': SePGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['GOL']
+                }
+            }]
         }
     }
 
 
 @pytest.fixture
-def TfPGP():
+def many_v_many_no_ligand_no_cofactor_results(CnPGP_seq, TaPGP_seq, TfPGP_seq):
     return {
-        'protein': {
-            'id':
-            'P',
-            'sequence':
-            'MSTAQPLTDADHLIDSVQTFIFDCDGVIWKGDKLIDGVPQTLDMLRSKGKRLVFVTNNSTKSRKQYGKKFETLGLNVNEEEIFASSFAAAAYLQSIDFPKDKKVYVIGEDGILKELELAGFQYLGGPEDGDKKIELKPGFLMEHDKDVGAVVVGFDRYFNYYKIQYGTLCIRENSGCLFIATNRDAVTHLTDAQEWAGGGSMVGALCGSTQRQPLVVGKPSTFMMDYLANKFGILKSQICMVGDRLDTDILFGQNGGCKTLLVLSGVTTLSMLQSPDNSIQPDFYTNKISDFLSLKATAR'
-        }
-    }
-
-
-@pytest.fixture
-def SePGP():
-    return {
-        'protein': {
-            'id':
-            'P',
-            'sequence':
-            'MQAIIFDFDGTLVDSLPTVVAIANAHAPDFGYDPIDERDYAQLRQWSSRTIVRRAGLSPWQQARLLQRVQRQLGDCLPALQLFPGVADLLAQLRSRSLCLGILSSNSRQNIEAFLQRQGLRSLFSVVQAGTPILSKRRALSQLVAREGWQPAAVMYVGDETRDVEAARQVGLIAVAVTWGFNDRQSLVAACPDWLLETPSDLLQAVTQLMRQ'
-        }
-    }
-
-
-@pytest.fixture
-def pga():
-    return {'ligand': {'id': 'L', 'ccdCodes': ['PGA']}}
-
-
-@pytest.fixture
-def gol():
-    return {'ligand': {'id': 'L', 'ccdCodes': ['GOL']}}
-
-
-@pytest.fixture
-def mg():
-    return {'ligand': {'id': 'C', 'ccdCodes': ['MG']}}
-
-
-@pytest.fixture
-def folding_only_ligands_and_cofactor_results(CnPGP, TfPGP, TaPGP, pga, gol,
-                                              mg):
-    return {
-        'P_CnPGP_L_PGA_C_MG': {
-            'name': 'P_CnPGP_L_PGA_C_MG',
-            'sequences': [CnPGP, pga, mg]
+        'CnPGP_TaPGP': {
+            'name':
+            'CnPGP_TaPGP',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': CnPGP_seq
+                }
+            }, {
+                'protein': {
+                    'id': ['B'],
+                    'sequence': TaPGP_seq
+                }
+            }]
         },
-        'P_TaPGP_L_PGA_C_MG': {
-            'name': 'P_TaPGP_L_PGA_C_MG',
-            'sequences': [TaPGP, pga, mg]
+        'CnPGP_TfPGP': {
+            'name':
+            'CnPGP_TfPGP',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': CnPGP_seq
+                }
+            }, {
+                'protein': {
+                    'id': ['B'],
+                    'sequence': TfPGP_seq
+                }
+            }]
         },
-        'P_TfPGP_L_PGA_C_MG': {
-            'name': 'P_TfPGP_L_PGA_C_MG',
-            'sequences': [TfPGP, pga, mg]
-        },
-        'P_CnPGP_L_GOL_C_MG': {
-            'name': 'P_CnPGP_L_GOL_C_MG',
-            'sequences': [CnPGP, gol, mg]
-        },
-        'P_TaPGP_L_GOL_C_MG': {
-            'name': 'P_TaPGP_L_GOL_C_MG',
-            'sequences': [TaPGP, gol, mg]
-        },
-        'P_TfPGP_L_GOL_C_MG': {
-            'name': 'P_TfPGP_L_GOL_C_MG',
-            'sequences': [TfPGP, gol, mg]
-        }
-    }
-
-
-@pytest.fixture
-def one_v_many_ligands_only_results(CnPGP, TaPGP, TfPGP, SePGP, pga, gol):
-    return {
-        'P_CnPGP_P_SePGP_L_PGA': {
-            'name': 'P_CnPGP_L_PGA',
-            'sequences': [CnPGP, SePGP, pga]
-        },
-        'P_TaPGP_P_SePGP_L_PGA': {
-            'name': 'P_TaPGP_L_PGA',
-            'sequences': [TaPGP, SePGP, pga]
-        },
-        'P_TfPGP_P_SePGP_L_PGA': {
-            'name': 'P_TfPGP_L_PGA',
-            'sequences': [TfPGP, SePGP, pga]
-        },
-        'P_CnPGP_P_SePGP_L_GOL': {
-            'name': 'P_CnPGP_L_GOL',
-            'sequences': [CnPGP, SePGP, gol]
-        },
-        'P_TaPGP_P_SePGP_L_GOL': {
-            'name': 'P_TaPGP_L_GOL',
-            'sequences': [TaPGP, SePGP, gol]
-        },
-        'P_TfPGP_P_SePGP_L_GOL': {
-            'name': 'P_TfPGP_L_GOL',
-            'sequences': [TfPGP, SePGP, gol]
-        }
-    }
-
-
-@pytest.fixture
-def many_v_many_no_ligand_no_cofactor_results(CnPGP, TaPGP, TfPGP):
-    return {
-        'P_CnPGP_P_TaPGP': {
-            'name': 'P_CnPGP_P_TaPGP',
-            'sequences': [CnPGP, TaPGP]
-        },
-        'P_CnPGP_P_TfPGP': {
-            'name': 'P_CnPGP_P_TfPGP',
-            'sequences': [CnPGP, TfPGP]
-        },
-        'P_TaPGP_P_TfPGP': {
-            'name': 'P_TaPGP_P_TfPGP',
-            'sequences': [TaPGP, TfPGP]
+        'TaPGP_TfPGP': {
+            'name':
+            'TaPGP_TfPGP',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TaPGP_seq
+                }
+            }, {
+                'protein': {
+                    'id': ['B'],
+                    'sequence': TfPGP_seq
+                }
+            }]
         }
     }
 
@@ -319,8 +625,8 @@ def test_generateJSONs_one_v_many_ligands_only(
 
     result = af.generateJSONs(fasta_sequences,
                               ligand_list=ligand_list_multiple,
-                              anchor_sequences=anchor_sequences, protein_comparison_type='one_v_many')
-    
+                              anchor_sequences=anchor_sequences,
+                              protein_comparison_type='one_v_many')
 
     assert result == one_v_many_ligands_only_results
 
@@ -330,6 +636,7 @@ def test_generateJSONs_one_v_many_ligands_only(
         many_v_many_no_ligand_no_cofactor_results):
 
     result = af.generateJSONs(fasta_sequences,
-                              cofactor_list=cofactor_list_empty, protein_comparison_type='many_v_many')
+                              cofactor_list=cofactor_list_empty,
+                              protein_comparison_type='many_v_many')
 
     assert result == many_v_many_no_ligand_no_cofactor_results
