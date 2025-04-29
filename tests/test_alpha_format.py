@@ -169,7 +169,7 @@ def folding_only_result():
 def one_v_many_result():
     return {
         'name':
-        'CnPGP_SePGP_C_Mg',
+        'CnPGP_SePGP_Mg',
         'sequences': [{
             'protein': {
                 'id': ['A'],
@@ -326,7 +326,12 @@ def folding_only_ligands_and_cofactor_results(CnPGP_seq, TfPGP_seq, TaPGP_seq):
                     'id': ['C'],
                     'ccdCodes': ['MG']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'TaPGP_PGA_MG': {
             'name':
@@ -346,7 +351,12 @@ def folding_only_ligands_and_cofactor_results(CnPGP_seq, TfPGP_seq, TaPGP_seq):
                     'id': ['C'],
                     'ccdCodes': ['MG']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'TfPGP_PGA_MG': {
             'name':
@@ -366,7 +376,12 @@ def folding_only_ligands_and_cofactor_results(CnPGP_seq, TfPGP_seq, TaPGP_seq):
                     'id': ['C'],
                     'ccdCodes': ['MG']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'CnPGP_GOL_MG': {
             'name':
@@ -386,7 +401,12 @@ def folding_only_ligands_and_cofactor_results(CnPGP_seq, TfPGP_seq, TaPGP_seq):
                     'id': ['C'],
                     'ccdCodes': ['MG']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'TaPGP_GOL_MG': {
             'name':
@@ -406,11 +426,16 @@ def folding_only_ligands_and_cofactor_results(CnPGP_seq, TfPGP_seq, TaPGP_seq):
                     'id': ['C'],
                     'ccdCodes': ['MG']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'TfPGP_GOL_MG': {
             'name':
-            'TfPGP_PGA_MG',
+            'TfPGP_GOL_MG',
             'sequences': [{
                 'protein': {
                     'id': ['A'],
@@ -426,7 +451,12 @@ def folding_only_ligands_and_cofactor_results(CnPGP_seq, TfPGP_seq, TaPGP_seq):
                     'id': ['C'],
                     'ccdCodes': ['MG']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         }
     }
 
@@ -452,7 +482,12 @@ def one_v_many_ligands_only_results(CnPGP, TaPGP, TfPGP, SePGP):
                     'id': ['C'],
                     'ccdCodes': ['PGA']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'TaPGP_SePGP_PGA': {
             'name':
@@ -472,7 +507,12 @@ def one_v_many_ligands_only_results(CnPGP, TaPGP, TfPGP, SePGP):
                     'id': ['C'],
                     'ccdCodes': ['PGA']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'TfPGP_SePGP_PGA': {
             'name':
@@ -492,7 +532,12 @@ def one_v_many_ligands_only_results(CnPGP, TaPGP, TfPGP, SePGP):
                     'id': ['C'],
                     'ccdCodes': ['PGA']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'CnPGP_SePGP_GOL': {
             'name':
@@ -512,7 +557,12 @@ def one_v_many_ligands_only_results(CnPGP, TaPGP, TfPGP, SePGP):
                     'id': ['C'],
                     'ccdCodes': ['GOL']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'TaPGP_SePGP_GOL': {
             'name':
@@ -532,7 +582,12 @@ def one_v_many_ligands_only_results(CnPGP, TaPGP, TfPGP, SePGP):
                     'id': ['C'],
                     'ccdCodes': ['GOL']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'TfPGP_SePGP_GOL': {
             'name':
@@ -552,7 +607,12 @@ def one_v_many_ligands_only_results(CnPGP, TaPGP, TfPGP, SePGP):
                     'id': ['C'],
                     'ccdCodes': ['GOL']
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         }
     }
 
@@ -573,7 +633,12 @@ def many_v_many_no_ligand_no_cofactor_results(CnPGP_seq, TaPGP_seq, TfPGP_seq):
                     'id': ['B'],
                     'sequence': TaPGP_seq
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'CnPGP_TfPGP': {
             'name':
@@ -588,7 +653,12 @@ def many_v_many_no_ligand_no_cofactor_results(CnPGP_seq, TaPGP_seq, TfPGP_seq):
                     'id': ['B'],
                     'sequence': TfPGP_seq
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         },
         'TaPGP_TfPGP': {
             'name':
@@ -603,7 +673,12 @@ def many_v_many_no_ligand_no_cofactor_results(CnPGP_seq, TaPGP_seq, TfPGP_seq):
                     'id': ['B'],
                     'sequence': TfPGP_seq
                 }
-            }]
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
         }
     }
 
