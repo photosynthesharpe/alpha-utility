@@ -17,7 +17,7 @@ export DATABASES="/mnt/research/common-data/alphafold/database_3/"
 
 # Run for all jsons in a directory
 run_alphafold.py \
-  --input_dir=<PATH_TO_JSON_HERE> \
-  --model_dir=${MODEL_WEIGHTS}
-  --db_dir=${DATABASES}
+  --input_dir=<PATH_TO_JSON_DIR_HERE> \
+  --model_dir=${MODEL_WEIGHTS} \
+  --db_dir=${DATABASES} \
   --output_dir=<PATH_TO_OUTDIR_HERE>
