@@ -7,6 +7,7 @@ Scripts in this directory are:
 
 To run the array job, you'll need to know how many files are in your input directory; unfortunately this can't be done automatically in the job script, because slurm stops reading `#SBATCH` directives once any script command has been executed. So you'll need to run the following on the command line in your directory of interest:
 ```
-ls ./*.json | wc -l
+ls ./*.json > file_list
+wc -l file_list
 ```
 Then put that number in place of `<NUM_FILES>` in the job script.

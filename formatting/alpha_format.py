@@ -28,7 +28,8 @@ def format_protein_seqs(name,
                         anchor_sequences=None,
                         multi_subunit_proteins=None,
                         in_complex=None,
-                        prev_letters=0):
+                        prev_letters=0,
+                       remove_trailing_asterisks=False):
     """
     Format the sequence dicts for proteins, including multi-subunit proteins.
 
@@ -45,6 +46,8 @@ def format_protein_seqs(name,
         prev_letters, int, default 0: how many sequences are already in the
             dict -- can't repeat letters of the alphabet across subunits or
             pairs of sequences
+        remove_trailing_asterisks, bool: whether or not to remove trailing
+            asterisks from protein sequences
 
     returns:
         protein_seqs, list of dict: protein sequences
@@ -82,20 +85,38 @@ def format_protein_seqs(name,
             if alphabet_iter > 0:
                 id_letters = [letter + alphabet[alphabet_iter - 1] for letter in id_letters]
             total_letters += num
+            if remove_trailing_asterisks:
+                seq = str(has_seqs[sub].seq)
+                try:
+                    aster_idx = seq.index('*')
+                    if aster_idx == len(seq) - 1:
+                        seq = seq[:-1]
+                except ValueError:
+                    seq = seq
+            else:
+                seq = str(has_seqs[sub].seq)
             sub_seq = {
                 'protein': {
                     'id': id_letters,
-                    'sequence': str(has_seqs[sub].seq)
+                    'sequence': seq
                 }
             }
             seqs.append(sub_seq)
 
     # If not, just make one sequence, but put in a list for consistency
     else:
+        if remove_trailing_asterisks:
+            seq = str(has_seqs[name].seq)
+            try:
+                aster_idx = seq.index('*')
+                if aster_idx == len(seq) - 1:
+                    seq = seq[:-1]
+            except ValueError:
+                seq = seq
         seqs = [{
             'protein': {
                 'id': [alphabet[prev_letters]],
-                'sequence': str(has_seqs[name].seq)
+                'sequence': seq
             }
         }]
         total_letters = 1
@@ -106,7 +127,8 @@ def format_protein_seqs(name,
 def generate_seq_dicts(group,
                        fasta_sequences,
                        anchor_sequences=None,
-                       multi_subunit_proteins=None):
+                       multi_subunit_proteins=None,
+                      remove_trailing_asterisks=False):
     """
     Generate sequence dicts from all desired combinations.
 
@@ -118,6 +140,8 @@ def generate_seq_dicts(group,
         multi_subunit_proteins, dict, optional: keys are ID's for proteins with
             multiple subunits, values are dicts with fasta ID: number of
             occurrences pairs
+        remove_trailing_asterisks, bool: whether or not to remove trailing
+            asterisks from protein sequences
 
     returns:
         instance_dict, dict: the formatted json for this entry
@@ -161,7 +185,8 @@ def generate_seq_dicts(group,
                                                       anchor_sequences,
                                                       multi_subunit_proteins,
                                                       in_complex,
-                                                      total_letters)
+                                                      total_letters,
+                                                      remove_trailing_asterisks)
             total_letters += update_total_letters
         # Both cofactor and ligand use the keys 'ligand' and 'ccdCodes'
         else:
@@ -191,7 +216,8 @@ def generateJSONs(fasta_sequences,
                   anchor_sequences=None,
                   protein_comparison_type='folding_only',
                   multi_subunit_proteins=None,
-                  make_self_matches=False):
+                  make_self_matches=False,
+                 remove_trailing_asterisks=False):
     """
     Make paired json files for ligands and proteins.
 
@@ -207,6 +233,8 @@ def generateJSONs(fasta_sequences,
             occurrences pairs
         make_self_matches, bool: whether or not to include self matches in
             the many_v_many case
+        remove_trailing_asterisks, bool: whether or not to remove trailing
+            asterisks from protein sequences
 
     returns:
         inputs, dict of dict: keys are pair names, values are formatted json
@@ -282,15 +310,16 @@ def generateJSONs(fasta_sequences,
                 if combo[0] == combo[1]:
                     continue
         inp = generate_seq_dicts(combo, fasta_sequences, anchor_sequences,
-                                 multi_subunit_proteins)
-        inputs['_'.join(['_'.join(c.split('_')[1:]) for c in combo])] = inp
+                                 multi_subunit_proteins, remove_trailing_asterisks)
+        inputs[inp['name']] = inp
         protein_combo_tracker.append(combo)
 
     return inputs
 
 
 def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
-         protein_comparison_type, multi_subunit_proteins, make_self_matches):
+         protein_comparison_type, multi_subunit_proteins, make_self_matches,
+        remove_trailing_asterisks):
 
     # Read in the provided input files
     print('\nReading inputs...')
@@ -331,7 +360,8 @@ def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
     print('\nGenerating jsons...')
     inputs = generateJSONs(fasta_sequences, ligands, cofactors,
                            anchor_fasta_sequences, protein_comparison_type,
-                           multi_subunit_proteins, make_self_matches)
+                           multi_subunit_proteins, make_self_matches,
+                          remove_trailing_asterisks)
 
     # Save the output
     print('\nSaving jsons...')
@@ -407,6 +437,14 @@ if __name__ == "__main__":
         action='store_true',
         help='Whether or not to include each protein against itself in the '
         'many_v_many scenario')
+    parser.add_argument(
+        '--remove_trailing_asterisks', ##TODO add a unit test for this
+        action='store_true',
+        help='Whether or not to remove asterisks on the end of protein sequences. '
+        '* are stop codons in a fasta, and AlphaFold does not allow them. However, '
+        'as caution should be exercised removing asterisks not at the end of '
+        'sequences, only trailing asterisks will be removed with this option.'
+    )
 
     # Get the absolute paths of files and directories
     args = parser.parse_args()
@@ -426,4 +464,5 @@ if __name__ == "__main__":
 
     main(args.fasta, args.out_loc, args.outprefix, args.ligands_file,
          args.cofactor_file, args.anchor_fasta, args.protein_comparison_type,
-         args.multi_subunit_proteins, args.make_self_matches)
+         args.multi_subunit_proteins, args.make_self_matches,
+         args.remove_trailing_asterisks)

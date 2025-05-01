@@ -18,12 +18,15 @@ module load AlphaFold3/3.0.1-foss-2023a-CUDA-12.4.0 ## Could change
 export MODEL_WEIGHTS="/mnt/research/Walker_Lab_Research/alphaFold3"
 export DATABASES="/mnt/research/common-data/alphafold/database_3/"
 
+# Set the directory where the jsons are found
+DATADIR=<DATA_DIR_IN_QUOTES> # No slash at the end
+
+# Set the list of files to iterate over
+readarray -t files <${DATADIR}/file_list
+
 # Run an array of AlphaFold calls
-
-
-# Run for all jsons in a directory
 run_alphafold.py \
-  --json_path=${files[$SLURM_ARRAY_TASK_ID-1]} \
+  --json_path=${DATADIR}/${files[$SLURM_ARRAY_TASK_ID-1]} \
   --model_dir=${MODEL_WEIGHTS} \
   --db_dir=${DATABASES} \
   --output_dir=<PATH_TO_OUTDIR_HERE>
