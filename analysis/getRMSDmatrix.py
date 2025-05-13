@@ -19,7 +19,7 @@ def getRMSDmatrix(filelist):
     Get the RMSD matrix for a given fold.
 
     Unmodified from PlastidCut analysis.
-    
+
     parameters:
         filelist, list of str: paths to .cif files
 
@@ -29,8 +29,8 @@ def getRMSDmatrix(filelist):
     mol = Molecule.Molecule()
     for f in filelist:
         mol.load(f, 'pdbx')
-    seli = atomsel("name CA")
-    selj = atomsel("name CA")
+    seli = atomsel("type CA") ## NOTE: this is for py-VMD, you need "name CA"
+    selj = atomsel("type CA") ## for a full installation of VMD
     rmsdlist = []
     for i in range(mol.numFrames()):
         seli.frame = i
@@ -54,7 +54,7 @@ def main(alphafold_outputs, outpath, out_prefix):
         # Get the fold name from the directory containing these results
         name = fold.split('/')[-2]
         # Load the ranking scores
-        data = pd.read_csv(fold, skiprows=1, usecols=2)
+        data = pd.read_csv(fold)
         # Get the cif files
         ciffiles = sorted(glob.glob(f'{dirname(fold)}/*/model.cif'))
         # Pass to the heavy lifter function
