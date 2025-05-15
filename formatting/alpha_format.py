@@ -105,8 +105,8 @@ def format_protein_seqs(name,
 
     # If not, just make one sequence, but put in a list for consistency
     else:
-        if remove_trailing_asterisks:
-            seq = str(has_seqs[name].seq)
+        seq = str(has_seqs[name].seq)
+        if remove_trailing_asterisks:   
             try:
                 aster_idx = seq.index('*')
                 if aster_idx == len(seq) - 1:

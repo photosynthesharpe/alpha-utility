@@ -2,10 +2,26 @@
 ###############################################################################
 #SBATCH --time=03:59:00 # Change this for jobs that need more time
 #SBATCH --cpus-per-task=1
-#SBATCH --gpus=h200:1
-#SBATCH --mem-per-cpu=100G
+#SBATCH --gres=gpu:1
+#SBATCH -C [neh|nel|nal|nif|nvf] ## We want the good GPUs
+#SBATCH --mem-per-cpu=48G
 #SBATCH --job-name <NAME>
 ###############################################################################
+
+# Workarounds for older GPUs
+nvidia-smi
+# For inference, we need sufficiently new GPUs, or at least a workaround.
+# See https://github.com/google-deepmind/alphafold3/issues/59 for working with the V100s
+COMPUTECAP=`nvidia-smi --query-gpu=compute_cap --format=csv | tail -n1`
+
+EXPECTCAP='8.0'
+%s
+if [[ $versions = "$(sort -V <<< "$versions")" ]]; then
+    echo 'FAILURE'
+    export XLA_FLAGS="--xla_disable_hlo_passes=custom-kernel-fusion-rewriter"
+else
+    echo 'SUCCESS'
+fi
 
 # Set the array size -- this is the number of files to process
 #SBATCH --array=1-<NUM_FILES>
@@ -24,8 +40,14 @@ DATADIR=<DATA_DIR_IN_QUOTES> # No slash at the end
 # Set the list of files to iterate over
 readarray -t files <${DATADIR}/file_list
 
+# Edit the filenames in the array to include _data
+for i in "${!files[@]}"; do
+    files[$i]="${file%.*}_data${file##*.}"
+done
+
 # Run an array of AlphaFold calls
 run_alphafold.py \
+  --norun_data_pipeline \
   --json_path=${DATADIR}/${files[$SLURM_ARRAY_TASK_ID-1]} \
   --model_dir=${MODEL_WEIGHTS} \
   --db_dir=${DATABASES} \
