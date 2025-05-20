@@ -8,6 +8,9 @@
 #SBATCH --job-name <NAME>
 ###############################################################################
 
+# Set the array size -- this is the number of files to process
+#SBATCH --array=1-<NUM_FILES>
+
 # Workarounds for older GPUs
 nvidia-smi
 # For inference, we need sufficiently new GPUs, or at least a workaround.
@@ -23,9 +26,6 @@ else
     echo 'SUCCESS'
 fi
 
-# Set the array size -- this is the number of files to process
-#SBATCH --array=1-<NUM_FILES>
-
 # First, purge and load modules
 module purge
 module load AlphaFold3/3.0.1-foss-2023a-CUDA-12.4.0 ## Could change
@@ -38,12 +38,7 @@ export DATABASES="/mnt/research/common-data/alphafold/database_3/"
 DATADIR=<DATA_DIR_IN_QUOTES> # No slash at the end
 
 # Set the list of files to iterate over
-readarray -t files <${DATADIR}/file_list
-
-# Edit the filenames in the array to include _data
-for i in "${!files[@]}"; do
-    files[$i]="${file%.*}_data${file##*.}"
-done
+readarray -t files <${DATADIR}/data_file_list_0
 
 # Run an array of AlphaFold calls
 run_alphafold.py \
@@ -51,4 +46,4 @@ run_alphafold.py \
   --json_path=${DATADIR}/${files[$SLURM_ARRAY_TASK_ID-1]} \
   --model_dir=${MODEL_WEIGHTS} \
   --db_dir=${DATABASES} \
-  --output_dir=<PATH_TO_OUTDIR_HERE>
+  --output_dir=${DATADIR}

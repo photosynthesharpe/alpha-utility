@@ -9,10 +9,10 @@ import argparse
 from os.path import abspath
 
 
-def main(json_dir):
+def main(f_list):
 
     # Read in file list
-    with open(f'{json_dir}/file_list') as f:
+    with open(f_list) as f:
         files = [l.strip() for l in f.readlines()]
 
     # Split into 1000s
@@ -20,19 +20,21 @@ def main(json_dir):
 
     # Write out
     for i, sub in enumerate(subsets):
-        with open(f'{json_dir}/file_list_{i}', 'w') as f:
+        with open(f'{f_list}_{i}', 'w') as f:
             f.write('\n'.join(sub))
-    print(f'Wrote out {i} subsets as {json_dir}/file_list_#')
+    print(f'Wrote out {i+1} subsets as {f_list}_#')
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Subset folds')
 
-    parser.add_argument('json_dir')
+    parser.add_argument('f_list', type=str,
+            help='Patht o file containing a list of either files '
+            'or directories for an array job')
 
     args = parser.parse_args()
 
-    args.json_dir = abspath(args.json_dir)
+    args.json_dir = abspath(args.f_list)
 
-    main(args.json_dir)
+    main(args.f_list)
