@@ -71,7 +71,7 @@ def main(alphafold_outputs, outpath, out_prefix):
 
     # Save
     print('\nSaving...')
-    rmsd_output.to_csv(f'{outpath}/{out_prefix}_rmsd_analysis.csv')
+    rmsd_output.to_csv(f'{outpath}/{out_prefix}_rmsd_analysis.csv', index=False)
     print(f'Saved output as {outpath}/{out_prefix}_rmsd_analysis.csv')
 
     print('\nDone!')
