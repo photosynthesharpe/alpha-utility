@@ -29,8 +29,8 @@ def getRMSDmatrix(filelist):
     mol = Molecule.Molecule()
     for f in filelist:
         mol.load(f, 'pdbx')
-    seli = atomsel("type CA") ## NOTE: this is for py-VMD, you need "name CA"
-    selj = atomsel("type CA") ## for a full installation of VMD
+    seli = atomsel("type CA")  ## NOTE: this is for py-VMD, you need "name CA"
+    selj = atomsel("type CA")  ## for a full installation of VMD
     rmsdlist = []
     for i in range(mol.numFrames()):
         seli.frame = i
@@ -41,7 +41,7 @@ def getRMSDmatrix(filelist):
     return np.array(rmsdlist)
 
 
-def main(alphafold_outputs, outpath, out_prefix):
+def main(alphafold_outputs, outpath, out_prefix, use_timestamped_folders):
 
     # Get a list of the files we want
     print('\nIdentifying files to analyze...')
@@ -53,6 +53,17 @@ def main(alphafold_outputs, outpath, out_prefix):
     for fold in tqdm(rankscores):
         # Get the fold name from the directory containing these results
         name = fold.split('/')[-2]
+        # Skip on whether it has timestamp or no
+        # Trying to allow there to be underscores in the protein names, so
+        # am just checkinf if the last two components are integers
+        if name.split('_')[-2].isdigit() and name.split('_')[-1].isdigit():
+            is_timestamped = True
+        else:
+            is_timestamped = False
+        if use_timestamped_folders and not is_timestamped:
+            continue
+        elif not use_timestamped_folders and is_timestamped:
+            continue
         # Load the ranking scores
         data = pd.read_csv(fold)
         # Get the cif files
@@ -71,7 +82,8 @@ def main(alphafold_outputs, outpath, out_prefix):
 
     # Save
     print('\nSaving...')
-    rmsd_output.to_csv(f'{outpath}/{out_prefix}_rmsd_analysis.csv', index=False)
+    rmsd_output.to_csv(f'{outpath}/{out_prefix}_rmsd_analysis.csv',
+                       index=False)
     print(f'Saved output as {outpath}/{out_prefix}_rmsd_analysis.csv')
 
     print('\nDone!')
@@ -89,10 +101,18 @@ if __name__ == '__main__':
     parser.add_argument('out_prefix',
                         type=str,
                         help='String to prepend to output filename')
+    parser.add_argument('--use_timestamped_folders',
+                        action='store_true',
+                        help='Whether to use folders with AlphaFold-added '
+                        'timestamps or not. This is mainly for people using '
+                        'the separate data and inference pipelines as in the '
+                        'job submission templates, as the results will be in '
+                        'the folders with timestamps.')
 
     args = parser.parse_args()
 
     args.alphafold_outputs = abspath(args.alphafold_outputs)
     args.outpath = abspath(args.outpath)
 
-    main(args.alphafold_outputs, args.outpath, args.out_prefix)
+    main(args.alphafold_outputs, args.outpath, args.out_prefix,
+         args.use_timestamped_folders)
