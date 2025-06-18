@@ -60,7 +60,8 @@ def make_contour_plot(data, outpath, outprefix):
                 dpi=600)
 
 
-def main(simple_analysis, outpath, outprefix, network_graph):
+def main(simple_analysis, outpath, outprefix, network_graph,
+         include_all_pairs):
 
     # Initialize graph
     print('\nInitializing graph...')
@@ -73,13 +74,19 @@ def main(simple_analysis, outpath, outprefix, network_graph):
 
     # Filter data by those that have a confidence of higher than 0.5 or an
     # RMSD sum that is less than 10^1.5
-    print('\nFiltering data...')
-    filtered_data = simple_data[(simple_data['meanconfidence'] > 0.5) |
-                                (simple_data['rmsdsum'] < 10**1.5)]
+    if not include_all_pairs:
+        print('\nFiltering data...')
+        filtered_data = simple_data[(simple_data['meanconfidence'] > 0.5) | (
+            simple_data['rmsdsum'] < 10**1.5)].set_index('name')
+        print(
+            f'{len(simple_data) - len(filtered_data)} pairs were removed upon filtering.'
+        )
+    else:
+        filtered_data = simple_data.set_index('name')
 
     # Iterate over the pairs and add them to the graph
     print('\nAdding nodes and edges to the network...')
-    for pair in tqdm(filtered_data['name']):
+    for pair in tqdm(filtered_data.index):
         try:
             n1, n2 = pair.split("_")
         except ValueError:
@@ -87,7 +94,10 @@ def main(simple_analysis, outpath, outprefix, network_graph):
             continue
         G.add_node(n1)
         G.add_node(n2)
-        G.add_edge(n1, n2)
+        G.add_edge(n1,
+                   n2,
+                   confidence=filtered_data.loc[pair, 'meanconfidence'],
+                   RMSD=filtered_data.loc[pair, 'rmsdsum'])
     gexf_path = f'{outpath}/{outprefix}_network.gexf'
     print(f'Saving as a gexf to: {gexf_path}')
     nx.write_gexf(G, gexf_path)
@@ -147,6 +157,9 @@ if __name__ == '__main__':
                         'which may fail on certain types of networks. The '
                         '.gexf file can be loaded into Gephi for interactive '
                         'visualization')
+    parser.add_argument('--include_all_pairs',
+                        action='store_true',
+                        help='Whether or not to filter by confidence')
 
     args = parser.parse_args()
 
@@ -154,4 +167,4 @@ if __name__ == '__main__':
     args.outpath = abspath(args.outpath)
 
     main(args.simple_analysis, args.outpath, args.outprefix,
-         args.network_graph)
+         args.network_graph, args.include_all_pairs)
