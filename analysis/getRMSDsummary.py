@@ -10,8 +10,11 @@ from os.path import abspath, dirname
 import glob
 import pandas as pd
 import numpy as np
+from scipy.stats import gmean
 from vmd import Molecule, atomsel
 from tqdm import tqdm
+from collections import defaultdict
+from symmetricalRMSD import calculateSymmetricalRMSD
 
 
 def getRMSDmatrix(filelist):
@@ -41,15 +44,16 @@ def getRMSDmatrix(filelist):
     return np.array(rmsdlist)
 
 
-def main(alphafold_outputs, outpath, out_prefix, use_timestamped_folders):
+def main(alphafold_outputs, outpath, out_prefix, summary_statistics,
+         use_timestamped_folders, symmetrical_partner):
 
     # Get a list of the files we want
     print('\nIdentifying files to analyze...')
     rankscores = sorted(glob.glob(f'{alphafold_outputs}/*/ranking_scores.csv'))
 
     # Go through outputs
-    print('\nCalculating RMSD sums...')
-    rmsd_data = {'name': [], 'meanconfidence': [], 'rmsdsum': []}
+    print('\nCalculating RMSD statistics...')
+    rmsd_data = defaultdict(list)
     for fold in tqdm(rankscores):
         # Get the fold name from the directory containing these results
         name = fold.split('/')[-2]
@@ -69,11 +73,22 @@ def main(alphafold_outputs, outpath, out_prefix, use_timestamped_folders):
         # Get the cif files
         ciffiles = sorted(glob.glob(f'{dirname(fold)}/*/model.cif'))
         # Pass to the heavy lifter function
-        rmsdsum = np.sum(getRMSDmatrix(ciffiles))
-        # Append to dataframe input
+        if symmetrical_partner:
+            rmsdmatrix = calculateSymmetricalRMSD(dirname(fold), protein='rubisco')
+        else:
+            rmsdmatrix = getRMSDmatrix(ciffiles)
+        # Summarize and append to dataframe input
+        for stat in summary_statistics.split(','):
+            if stat == 'sum':
+                rmsd_data['rmsd_sum'].append(np.sum(rmsdmatrix))
+            elif stat == 'geomean':
+                # Have to ignore 0s since it's a diagonal matrix and they
+                # aren't meaningful -- assuming no RMSD would ever be actually 0
+                rmsd_flat = rmsdmatrix.flatten()[rmsdmatrix.flatten() != 0]
+                rmsd_data['rmsd_geomean'].append(gmean(rmsd_flat))
         rmsd_data['name'].append(name)
         rmsd_data['meanconfidence'].append(data['ranking_score'].mean())
-        rmsd_data['rmsdsum'].append(rmsdsum)
+        
 
     # Make the dataframe
     print('\nMaking dataframe...')
@@ -101,6 +116,10 @@ if __name__ == '__main__':
     parser.add_argument('out_prefix',
                         type=str,
                         help='String to prepend to output filename')
+    parser.add_argument('-summary_statistics', type=str, default='sum',
+                       help='What operation to use to summarize the RMSD matrix. '
+                       'Options are sum and geomean. Multiples can be provided by '
+                       'using a comma-separated list with no spaces.')
     parser.add_argument('--use_timestamped_folders',
                         action='store_true',
                         help='Whether to use folders with AlphaFold-added '
@@ -108,11 +127,17 @@ if __name__ == '__main__':
                         'the separate data and inference pipelines as in the '
                         'job submission templates, as the results will be in '
                         'the folders with timestamps.')
+    parser.add_argument('-symmetrical_partner', type=str, default='rubisco',
+                       help='Whether or not to rotate a symmetrical protein '
+                       'partner to get a minimized RMSD accounting for docking '
+                       'in functionally identical parts of a protein. Currently '
+                       'only implemented for rubisco that\'s been formmated with '
+                       'the alpha_format.py code with one monomeric binding partner.')
 
     args = parser.parse_args()
 
     args.alphafold_outputs = abspath(args.alphafold_outputs)
     args.outpath = abspath(args.outpath)
 
-    main(args.alphafold_outputs, args.outpath, args.out_prefix,
-         args.use_timestamped_folders)
+    main(args.alphafold_outputs, args.outpath, args.out_prefix, args.summary_statistics,
+         args.use_timestamped_folders, args.symmetrical_partner)
