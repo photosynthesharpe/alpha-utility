@@ -190,9 +190,14 @@ def generate_seq_dicts(group,
             total_letters += update_total_letters
         # Both cofactor and ligand use the keys 'ligand' and 'ccdCodes'
         else:
-            seqs = [{'ligand': {"id": [ascii_uppercase[total_letters]], "ccdCodes": [name]}}]
+            # Check if we're putting multiple ligands/cofactors in the same fold
+            if len(name.split('_')) > 1:
+                all_ligands = name.split('_')
+            else:
+                all_ligands = [name]
+            seqs = [{'ligand': {"id": [ascii_uppercase[total_letters]], "ccdCodes": [n]}} for n in all_ligands]
             total_letters += 1
-            instance_name_parts.append(name)
+            instance_name_parts.extend(all_ligands)
         # Add it to the list of sequences for this dict
         instance_dict['sequences'].extend(seqs)
 
@@ -212,7 +217,9 @@ def generate_seq_dicts(group,
 
 def generateJSONs(fasta_sequences,
                   ligand_list=None,
+                  group_ligands=False,
                   cofactor_list=None,
+                  group_cofactors=False,
                   anchor_sequences=None,
                   protein_comparison_type='folding_only',
                   multi_subunit_proteins=None,
@@ -251,11 +258,29 @@ def generateJSONs(fasta_sequences,
     # which CCD codes are ligands vs. cofactors when we do that? Here, we'll pre-
     # pend each ligand with 'L_' and each cofactor with 'C_'. We will also put
     # 'P_' on the beginning of proteins.
+
+    # An additional consideration for wanting to put multiple ligands or cofactors
+    # in the same fold is that we need to treat all of them like one item, but then
+    # unpack them later. In order to preserve compatibility with the way I identify
+    # the components in the generate_seq_dicts function (splitting on '_'), I'll use
+    # a delimiter between the different cofactors. CCD codes are 1-3 alphanumeric
+    # characters, so we should beable to use any reasonable seperator; however, I'll
+    # check for the delimiter character first, because https://xkcd.com/327/
     protein_list = ['P_' + prot for prot in fasta_sequences.keys()]
     if cofactor_list is not None:
-        cofactor_list = ['C_' + cof for cof in cofactor_list]
+        if group_cofactors:
+            for cof in cofactor_list:
+                assert '_' in cof, 'Please remove _ characters from cofactors'
+            cofactor_list = ['C_' + '_'.join(cofactor_list)]
+        else:
+            cofactor_list = ['C_' + cof for cof in cofactor_list]
     if ligand_list is not None:
-        ligand_list = ['L_' + lig for lig in ligand_list]
+        if group_ligands:
+            for lig in ligand_list:
+                assert '_' in lig, 'Please remove _ characters from ligands'
+            ligand_list = ['L_' + '_'.join(ligand_list)]
+        else:
+            ligand_list = ['L_' + lig for lig in ligand_list]
     if anchor_sequences is not None:
         anchor_list = ['P_' + prot for prot in anchor_sequences.keys()]
     else:
@@ -317,7 +342,7 @@ def generateJSONs(fasta_sequences,
     return inputs
 
 
-def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
+def main(fasta, out_loc, outprefix, ligands_file, group_ligands, cofactor_file, group_cofactors, anchor_fasta,
          protein_comparison_type, multi_subunit_proteins, make_self_matches,
         remove_trailing_asterisks):
 
@@ -358,7 +383,7 @@ def main(fasta, out_loc, outprefix, ligands_file, cofactor_file, anchor_fasta,
 
     # Call the function to generate the jsons
     print('\nGenerating jsons...')
-    inputs = generateJSONs(fasta_sequences, ligands, cofactors,
+    inputs = generateJSONs(fasta_sequences, ligands, group_ligands, cofactors, group_cofactors,
                            anchor_fasta_sequences, protein_comparison_type,
                            multi_subunit_proteins, make_self_matches,
                           remove_trailing_asterisks)
@@ -395,12 +420,18 @@ if __name__ == "__main__":
         type=str,
         help='Path to to file with the CCD ligand codes. Should be a .txt file '
         'with one code per line')
+    parser.add_argument('--group_ligands',
+        action='store_true',
+        help='Provides all ligands to every fold, rather than one at a time')
     parser.add_argument(
         '-cofactor_file',
         default=None,
         type=str,
         help='Path to file with the relevant cofactors. Should be a .txt file '
         'with one code per line')
+    parser.add_argument('--group_cofactors',
+        action='store_true',
+        help='Provides all cofactors to every fold, rather than one at a time')
     parser.add_argument(
         '-anchor_fasta',
         default=None,
@@ -462,7 +493,7 @@ if __name__ == "__main__":
     if args.multi_subunit_proteins is not None:
         args.multi_subunit_proteins = abspath(args.multi_subunit_proteins)
 
-    main(args.fasta, args.out_loc, args.outprefix, args.ligands_file,
-         args.cofactor_file, args.anchor_fasta, args.protein_comparison_type,
+    main(args.fasta, args.out_loc, args.outprefix, args.ligands_file, args.group_ligands,
+         args.cofactor_file, args.group_cofactors, args.anchor_fasta, args.protein_comparison_type,
          args.multi_subunit_proteins, args.make_self_matches,
          args.remove_trailing_asterisks)
