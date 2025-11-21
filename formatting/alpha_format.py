@@ -195,10 +195,13 @@ def generate_seq_dicts(group,
                 all_ligands = name.split('_')
             else:
                 all_ligands = [name]
-            seqs = [{'ligand': {"id": [ascii_uppercase[total_letters]], "ccdCodes": [n]}} for n in all_ligands]
-            total_letters += 1
+            seqs = []
+            for n in all_ligands:
+                seqs.append({'ligand': {"id": [ascii_uppercase[total_letters]], "ccdCodes": [n]}})
+                total_letters += 1
             instance_name_parts.extend(all_ligands)
-        # Add it to the list of sequences for this dict
+        
+        # Add protein sequences plus ligands and cofactors to the list of sequences for this dict
         instance_dict['sequences'].extend(seqs)
 
         # Add additional required arguments
@@ -208,7 +211,7 @@ def generate_seq_dicts(group,
         ## them through to here
         instance_dict['dialect'] = 'alphafold3'
         instance_dict['version'] = 2
-        # Re: this next param, no clude how many structures people want, def want
+        # Re: this next param, no clue how many structures people want, def want
         # to update this to be passable
         instance_dict['modelSeeds'] = [1855]
 
@@ -270,14 +273,14 @@ def generateJSONs(fasta_sequences,
     if cofactor_list is not None:
         if group_cofactors:
             for cof in cofactor_list:
-                assert '_' in cof, 'Please remove _ characters from cofactors'
+                assert '_' not in cof, 'Please remove _ characters from cofactors'
             cofactor_list = ['C_' + '_'.join(cofactor_list)]
         else:
             cofactor_list = ['C_' + cof for cof in cofactor_list]
     if ligand_list is not None:
         if group_ligands:
             for lig in ligand_list:
-                assert '_' in lig, 'Please remove _ characters from ligands'
+                assert '_' not in lig, 'Please remove _ characters from ligands'
             ligand_list = ['L_' + '_'.join(ligand_list)]
         else:
             ligand_list = ['L_' + lig for lig in ligand_list]

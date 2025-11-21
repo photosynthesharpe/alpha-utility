@@ -257,14 +257,19 @@ def test_generate_seq_dicts_many_v_many(fasta_sequences, combo_many_v_many,
 # due to the manual labor of formulating the correct answers. Instead, I'm
 # focusing on the cases that have some unique feature that I want to test, like
 # having no cofactors or the many_v_many scenario that involves needing to use
-# the same protein list twice
-## TODO probably want to add a test for multiple cofactors if that's a use case
-## we expect to see
+# the same protein list twice. Note that I've only implemented tests for the
+# multiple cofactors/ligands use case for folding_only, because it should be
+# independent of comparison type
 
 
 @pytest.fixture
 def ligand_list_multiple():
     return ['PGA', 'GOL']
+
+
+@pytest.fixture
+def cofactor_list_multiple():
+    return ['MG', 'ATP']
 
 
 @pytest.fixture
@@ -683,6 +688,288 @@ def many_v_many_no_ligand_no_cofactor_results(CnPGP_seq, TaPGP_seq, TfPGP_seq):
     }
 
 
+@pytest.fixture
+def folding_only_grouped_ligands_and_cofactor_results(CnPGP_seq, TfPGP_seq, TaPGP_seq):
+    return {
+        'CnPGP_PGA_GOL_MG': {
+            'name':
+            'CnPGP_PGA_GOL_MG',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': CnPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['PGA']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['GOL']
+                }
+            }, {
+                'ligand': {
+                    'id': ['D'],
+                    'ccdCodes': ['MG']
+                }
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
+        },
+        'TaPGP_PGA_GOL_MG': {
+            'name':
+            'TaPGP_PGA_GOL_MG',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TaPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['PGA']
+                }
+            },{
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['GOL']
+                }
+            }, {
+                'ligand': {
+                    'id': ['D'],
+                    'ccdCodes': ['MG']
+                }
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
+        },
+        'TfPGP_PGA_GOL_MG': {
+            'name':
+            'TfPGP_PGA_GOL_MG',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TfPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['PGA']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['GOL']
+                }
+            }, {
+                'ligand': {
+                    'id': ['D'],
+                    'ccdCodes': ['MG']
+                }
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
+        }
+    }
+
+
+@pytest.fixture
+def folding_only_ligands_and_grouped_cofactors_results(CnPGP_seq, TfPGP_seq, TaPGP_seq):
+    return {
+        'CnPGP_PGA_MG_ATP': {
+            'name':
+            'CnPGP_PGA_MG_ATP',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': CnPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['PGA']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }, {
+                'ligand': {
+                    'id': ['D'],
+                    'ccdCodes': ['ATP']
+                }
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
+        },
+        'TaPGP_PGA_MG_ATP': {
+            'name':
+            'TaPGP_PGA_MG_ATP',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TaPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['PGA']
+                }
+            },{
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }, {
+                'ligand': {
+                    'id': ['D'],
+                    'ccdCodes': ['ATP']
+                }
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
+        },
+        'TfPGP_PGA_MG_ATP': {
+            'name':
+            'TfPGP_PGA_MG_ATP',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TfPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['PGA']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }, {
+                'ligand': {
+                    'id': ['D'],
+                    'ccdCodes': ['ATP']
+                }
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
+        },
+        'CnPGP_GOL_MG_ATP': {
+            'name':
+            'CnPGP_GOL_MG_ATP',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': CnPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['GOL']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }, {
+                'ligand': {
+                    'id': ['D'],
+                    'ccdCodes': ['ATP']
+                }
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
+        },
+        'TaPGP_GOL_MG_ATP': {
+            'name':
+            'TaPGP_GOL_MG_ATP',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TaPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['GOL']
+                }
+            },{
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }, {
+                'ligand': {
+                    'id': ['D'],
+                    'ccdCodes': ['ATP']
+                }
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
+        },
+        'TfPGP_GOL_MG_ATP': {
+            'name':
+            'TfPGP_GOL_MG_ATP',
+            'sequences': [{
+                'protein': {
+                    'id': ['A'],
+                    'sequence': TfPGP_seq
+                }
+            }, {
+                'ligand': {
+                    'id': ['B'],
+                    'ccdCodes': ['GOL']
+                }
+            }, {
+                'ligand': {
+                    'id': ['C'],
+                    'ccdCodes': ['MG']
+                }
+            }, {
+                'ligand': {
+                    'id': ['D'],
+                    'ccdCodes': ['ATP']
+                }
+            }],
+            'dialect':
+            'alphafold3',
+            'version':
+            2,
+            'modelSeeds': [1855]
+        }
+    }
+    
+
 def test_generateJSONs_folding_only_ligand_and_cofactor(
         fasta_sequences, ligand_list_multiple, cofactor_list_one,
         folding_only_ligands_and_cofactor_results):
@@ -715,3 +1002,25 @@ def test_generateJSONs_one_v_many_ligands_only(
                               protein_comparison_type='many_v_many')
 
     assert result == many_v_many_no_ligand_no_cofactor_results
+
+
+def test_generateJSONs_folding_only_grouped_ligands_and_cofactor(
+        fasta_sequences, ligand_list_multiple, cofactor_list_one,
+        folding_only_grouped_ligands_and_cofactor_results):
+
+    result = af.generateJSONs(fasta_sequences,
+                              ligand_list=ligand_list_multiple, group_ligands=True,
+                              cofactor_list=cofactor_list_one)
+
+    assert result == folding_only_grouped_ligands_and_cofactor_results
+
+
+def test_generateJSONs_folding_only_ligands_and_grouped_cofactors(
+        fasta_sequences, ligand_list_multiple, cofactor_list_multiple,
+        folding_only_ligands_and_grouped_cofactors_results):
+
+    result = af.generateJSONs(fasta_sequences,
+                              ligand_list=ligand_list_multiple,
+                              cofactor_list=cofactor_list_multiple, group_cofactors=True,)
+
+    assert result == folding_only_ligands_and_grouped_cofactors_results
